@@ -141,16 +141,16 @@ const AdminDashboardPage = () => {
                 >
                   <Users className="h-4 w-4 mr-2" /> Users
                 </Button>
-                <Link to="/mentors">
-                  <Button variant={tab === "users" ? "secondary" : "ghost"} size="sm" className="w-full justify-start">
-                    <GraduationCap className="h-4 w-4 mr-2" /> Mentors
-                  </Button>
-                </Link>
                 <Button variant={tab === "reviews" ? "secondary" : "ghost"} size="sm" className="w-full justify-start"
                   onClick={() => setTab("reviews")}
                 >
                   <Star className="h-4 w-4 mr-2" /> Reviews
                 </Button>
+                <Link to="/mentors">
+                  <Button variant="ghost" size="sm" className="w-full justify-start">
+                    <GraduationCap className="h-4 w-4 mr-2" /> Mentors
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
