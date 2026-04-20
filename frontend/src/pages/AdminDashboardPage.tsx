@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gql } from "@/lib/graphql";
 import { ALL_USERS_QUERY, ALL_REVIEWS_QUERY, TOGGLE_MENTOR_STATUS_MUTATION, HIDE_REVIEW_MUTATION } from "@/lib/queries";
@@ -116,7 +117,7 @@ const AdminDashboardPage = () => {
   return (
     <div className="container max-w-6xl mx-auto p-4 py-8">
       <div className="grid lg:grid-cols-[280px,1fr] gap-6 items-start">
-        <aside className="lg:sticky lg:top-20">
+        <aside className="lg:sticky lg:top-40">
           <Card>
             <CardContent className="pt-6 space-y-4">
               <div className="flex items-center gap-3">
@@ -145,6 +146,11 @@ const AdminDashboardPage = () => {
                 >
                   <Star className="h-4 w-4 mr-2" /> Reviews
                 </Button>
+                <Link to="/mentors">
+                  <Button variant="ghost" size="sm" className="w-full justify-start">
+                    <GraduationCap className="h-4 w-4 mr-2" /> Mentors
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
