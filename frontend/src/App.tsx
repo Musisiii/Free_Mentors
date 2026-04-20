@@ -14,7 +14,6 @@ import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import MentorsPage from "./pages/MentorsPage";
-import MentorDetailPage from "./pages/MentorDetailPage";
 import UserDashboardPage from "./pages/UserDashboardPage";
 import MentorDashboardPage from "./pages/MentorDashboardPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
@@ -94,14 +93,6 @@ const App = () => {
                 element={
                   <ProtectedRoute>
                     <MentorsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/mentors/:id"
-                element={
-                  <ProtectedRoute>
-                    <MentorDetailPage />
                   </ProtectedRoute>
                 }
               />
