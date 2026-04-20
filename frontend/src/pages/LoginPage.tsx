@@ -82,7 +82,7 @@ const LoginPage = () => {
       className="min-h-[calc(100vh-7rem)] flex items-center justify-center p-4 relative auth-bg"
         style={{ backgroundImage: `url('/images/pic4.png')` }}
     >
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <Card className="w-full max-w-md relative z-10">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
