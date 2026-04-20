@@ -12,8 +12,8 @@ export const MainLayout = () => {
 
   const handleLogout = () => {
     clearAuth();
-    toast({ title: "Logged out", description: "See you next time!" });
-    navigate("/");
+    toast({ title: "Logged out", description: `See you next time ${user?.firstName}!` });
+    navigate("/login");
   };
 
   const dashboardPath =
@@ -34,33 +34,11 @@ export const MainLayout = () => {
             <span className="font-bold text-xl">Free Mentors</span>
           </Link>
 
-          {isAuthenticated && (
-            <nav className="hidden md:flex items-center gap-1 text-sm">
-              <NavLink
-                to={dashboardPath}
-                className={({ isActive }) =>
-                  `px-3 py-2 rounded-md hover:bg-muted ${isActive ? "text-primary font-semibold" : "text-foreground/80"}`
-                }
-              >
-                Dashboard
-              </NavLink>
-              <NavLink
-                to="/mentors"
-                className={({ isActive }) =>
-                  `px-3 py-2 rounded-md hover:bg-muted ${isActive ? "text-primary font-semibold" : "text-foreground/80"}`
-                }
-              >
-                Browse Mentors
-              </NavLink>
-            </nav>
-          )}
-
           <div className="flex items-center gap-3">
             <ThemeToggle />
             {isAuthenticated ? (
               <Button variant="ghost" size="sm" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Logout</span>
+                <LogOut className="h-4 w-4 mr-2" /><span className="hidden sm:inline">Logout</span>
               </Button>
             ) : (
               <Button variant="outline" asChild>
