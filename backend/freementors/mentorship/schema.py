@@ -158,7 +158,8 @@ class Query(graphene.ObjectType):
             return MentorshipSession.objects.filter(mentee=user)
 
     def resolve_all_reviews(self, info):
-        return Review.objects.filter(is_hidden=False)
+        # return Review.objects.filter(is_hidden=False)
+        return Review.objects.all()
 
 
 class Mutation(graphene.ObjectType):
