@@ -132,7 +132,7 @@ const RegisterPage = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="address">Address</Label>
-                <Input id="address" placeholder="City, Country" value={formData.address} required onChange={update("address")} />
+                <Input id="address" placeholder="City - Country" value={formData.address} required onChange={update("address")} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="occupation">Occupation</Label>
