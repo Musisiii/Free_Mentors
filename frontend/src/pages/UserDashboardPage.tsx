@@ -7,6 +7,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Field } from "@/components/ui/field";
 import {
   BookOpen,
   GraduationCap,
@@ -175,13 +176,6 @@ const UserDashboardPage = () => {
     </div>
   );
 };
-
-const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div>
-    <div className="text-xs text-muted-foreground">{label}</div>
-    <div className="font-medium">{children}</div>
-  </div>
-);
 
 const StatCard = ({
   icon,
