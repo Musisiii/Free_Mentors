@@ -129,9 +129,7 @@ const AdminDashboardPage = () => {
                     {user?.firstName} {user?.lastName}
                   </div>
                   <div className="text-xs text-muted-foreground">{user?.email}</div>
-                  <Badge variant={ user?.role === "ADMIN" ? "admin" : user?.role === "MENTOR" ? "default" : "user" } className="mt-1">
-                    {user?.role}
-                  </Badge>
+                  <Badge variant='admin' className="mt-1">{user?.role}</Badge>
                 </div>
               </div>
 
@@ -192,6 +190,8 @@ const AdminDashboardPage = () => {
                     <div className="flex justify-center py-10">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
+                  ) : filteredUsers.length === 0 ? (
+                    <div className="text-center py-10 text-muted-foreground">No users found.</div>
                   ) : (
                     <div className="overflow-x-auto border rounded-md">
                       <table className="w-full text-sm">

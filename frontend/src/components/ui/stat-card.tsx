@@ -23,7 +23,14 @@ export const StatCard = ({
       isActive
         ? "border-2 border-primary"
         : "hover:bg-secondary/60"
-    }`}
+      }
+      ${label === "Total" && "text-foreground/50"}
+      ${label === "Pending" && "text-yellow-700"}
+      ${label === "Accepted" && "text-primary"}
+      ${label === "Rejected" && "text-red-700"}
+      ${label === "Completed" && "text-blue-700"}
+      ${loading ? "pointer-events-none opacity-70" : ""}
+    `}
     onClick={onClick}
   >
     <CardContent className="pt-6 flex items-center justify-between">
