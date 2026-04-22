@@ -435,7 +435,7 @@ const MentorDashboardPage = () => {
                                 >
                                   <Stack
                                     direction="row"
-                                    spacing={1.5}
+                                    spacing={{ xs: 0, sm: 1.5 }}
                                     sx={{ alignItems: "center" }}
                                   >
                                     <Box
@@ -445,7 +445,7 @@ const MentorDashboardPage = () => {
                                         flexShrink: 0,
                                         borderRadius: "50%",
                                         bgcolor: "rgba(0,0,0,0.05)",
-                                        display: "inline-flex",
+                                        display: { xs: 'none', sm: 'inline-flex' },
                                         alignItems: "center",
                                         justifyContent: "center",
                                       }}
@@ -497,7 +497,7 @@ const MentorDashboardPage = () => {
                                   sx={{
                                     display: "flex",
                                     alignItems: "center",
-                                    justifyContent: "space-between",
+                                    justifyContent: { xs: "center", sm: "space-between" },
                                     flexWrap: "wrap",
                                     gap: 1,
                                     pt: 0.5,

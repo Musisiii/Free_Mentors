@@ -289,7 +289,7 @@ const AdminDashboardPage = () => {
               <Box
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(4, 1fr)",
+                  gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(4, 1fr)", md: "repeat(4, 1fr)" },
                   gap: 2,
                 }}
               >
@@ -343,93 +343,192 @@ const AdminDashboardPage = () => {
                         No users found.
                       </Box>
                     ) : (
-                      <TableContainer
-                        sx={{ border: 1, borderColor: "divider", borderRadius: 1 }}
-                      >
-                        <Table size="small">
-                          <TableHead sx={{ bgcolor: "action.hover" }}>
-                            <TableRow>
-                              <TableCell sx={{ fontWeight: 600, pl: 5 }}>Name</TableCell>
-                              <TableCell sx={{ fontWeight: 600, pl: 10 }}>Email</TableCell>
-                              <TableCell align="center" sx={{ fontWeight: 600 }}>
-                                Role
-                              </TableCell>
-                              {selectedUserCategory !== "admins" && (
-                                <TableCell align="center" sx={{ fontWeight: 600 }}>
-                                  Action
-                                </TableCell>
-                              )}
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {filteredUsers.map((u) => (
-                              <TableRow
-                                key={u.id}
-                                sx={{ "&:hover": { bgcolor: "action.hover" } }}
-                              >
-                                <TableCell sx={{ fontWeight: 500 }}>
-                                  {u.firstName} {u.lastName}
-                                  {u.id === user?.id && (
-                                    <Typography
-                                      component="span"
-                                      variant="caption"
-                                      color="text.secondary"
-                                      sx={{ ml: 0.5 }}
-                                    >
-                                      (You)
-                                    </Typography>
-                                  )}
-                                </TableCell>
-                                <TableCell sx={{ color: "text.secondary" }}>
-                                  {u.email}
-                                </TableCell>
-                                <TableCell align="center">
-                                  <Chip
-                                    label={u.role}
-                                    size="small"
-                                    sx={{
-                                      ...roleChipSx[u.role],
-                                      fontWeight: 600,
-                                      fontSize: "0.7rem",
-                                      height: 20,
-                                    }}
-                                  />
-                                </TableCell>
-                                {selectedUserCategory !== "admins" && (
-                                  <TableCell align="center">
-                                    {u.role !== "ADMIN" ? (
-                                      u.role === "MENTOR" ? (
-                                        <Button
-                                          size="small"
-                                          variant="outlined"
-                                          color="warning"
-                                          disabled={toggleMentor.isPending}
-                                          onClick={() => toggleMentor.mutate(u.id)}
-                                          startIcon={<ArrowDown size={12} />}
-                                          sx={{ textTransform: "none", py: 0.25, minHeight: 0 }}
-                                        >
-                                          Demote
-                                        </Button>
-                                      ) : (
-                                        <Button
-                                          size="small"
-                                          variant="outlined"
-                                          disabled={toggleMentor.isPending}
-                                          onClick={() => toggleMentor.mutate(u.id)}
-                                          startIcon={<ArrowUp size={12} />}
-                                          sx={{ textTransform: "none", py: 0.25, minHeight: 0 }}
-                                        >
-                                          Promote
-                                        </Button>
-                                      )
-                                    ) : null}
+                      <>
+                        {/* Desktop / tablet: keep the table */}
+                        <Box sx={{ display: { xs: "none", sm: "block", md: "block" } }}>
+                          <TableContainer
+                            sx={{ border: 1, borderColor: "divider", borderRadius: 1 }}
+                          >
+                            <Table size="small">
+                              <TableHead sx={{ bgcolor: "action.hover" }}>
+                                <TableRow>
+                                  <TableCell sx={{ fontWeight: 600, pl: 5 }}>Name</TableCell>
+                                  <TableCell sx={{ fontWeight: 600, pl: 10 }}>Email</TableCell>
+                                  <TableCell align="center" sx={{ fontWeight: 600 }}>
+                                    Role
                                   </TableCell>
-                                )}
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
+                                  {selectedUserCategory !== "admins" && (
+                                    <TableCell align="center" sx={{ fontWeight: 600 }}>
+                                      Action
+                                    </TableCell>
+                                  )}
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {filteredUsers.map((u) => (
+                                  <TableRow
+                                    key={u.id}
+                                    sx={{ "&:hover": { bgcolor: "action.hover" } }}
+                                  >
+                                    <TableCell sx={{ fontWeight: 500 }}>
+                                      {u.firstName} {u.lastName}
+                                      {u.id === user?.id && (
+                                        <Typography
+                                          component="span"
+                                          variant="caption"
+                                          color="text.secondary"
+                                          sx={{ ml: 0.5 }}
+                                        >
+                                          (You)
+                                        </Typography>
+                                      )}
+                                    </TableCell>
+                                    <TableCell sx={{ color: "text.secondary" }}>
+                                      {u.email}
+                                    </TableCell>
+                                    <TableCell align="center">
+                                      <Chip
+                                        label={u.role}
+                                        size="small"
+                                        sx={{
+                                          ...roleChipSx[u.role],
+                                          fontWeight: 600,
+                                          fontSize: "0.7rem",
+                                          height: 20,
+                                        }}
+                                      />
+                                    </TableCell>
+                                    {selectedUserCategory !== "admins" && (
+                                      <TableCell align="center">
+                                        {u.role !== "ADMIN" ? (
+                                          u.role === "MENTOR" ? (
+                                            <Button
+                                              size="small"
+                                              variant="outlined"
+                                              color="warning"
+                                              disabled={toggleMentor.isPending}
+                                              onClick={() => toggleMentor.mutate(u.id)}
+                                              startIcon={<ArrowDown size={12} />}
+                                              sx={{ textTransform: "none", py: 0.25, minHeight: 0 }}
+                                            >
+                                              Demote
+                                            </Button>
+                                          ) : (
+                                            <Button
+                                              size="small"
+                                              variant="outlined"
+                                              disabled={toggleMentor.isPending}
+                                              onClick={() => toggleMentor.mutate(u.id)}
+                                              startIcon={<ArrowUp size={12} />}
+                                              sx={{ textTransform: "none", py: 0.25, minHeight: 0 }}
+                                            >
+                                              Promote
+                                            </Button>
+                                          )
+                                        ) : null}
+                                      </TableCell>
+                                    )}
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                        </Box>
+
+                        {/* Mobile: stacked cards */}
+                        <Stack spacing={1.5} sx={{ display: { xs: "flex", sm:"none", md: "none" } }}>
+                          {filteredUsers.map((u) => (
+                            <Box
+                              key={u.id}
+                              sx={{
+                                border: 1,
+                                borderColor: "divider",
+                                borderRadius: 1,
+                                p: 1.5,
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 1,
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "flex-start",
+                                  gap: 1,
+                                }}
+                              >
+                                <Box sx={{ minWidth: 0, flex: 1 }}>
+                                  <Typography sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+                                    {u.firstName} {u.lastName}
+                                    {u.id === user?.id && (
+                                      <Typography
+                                        component="span"
+                                        variant="caption"
+                                        color="text.secondary"
+                                        sx={{ ml: 0.5 }}
+                                      >
+                                        (You)
+                                      </Typography>
+                                    )}
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                    sx={{
+                                      wordBreak: "break-all",
+                                      fontSize: "0.8rem",
+                                      mt: 0.25,
+                                    }}
+                                  >
+                                    {u.email}
+                                  </Typography>
+                                </Box>
+                                <Chip
+                                  label={u.role}
+                                  size="small"
+                                  sx={{
+                                    ...roleChipSx[u.role],
+                                    fontWeight: 600,
+                                    fontSize: "0.7rem",
+                                    height: 20,
+                                    flexShrink: 0,
+                                  }}
+                                />
+                              </Box>
+
+                              {selectedUserCategory !== "admins" && u.role !== "ADMIN" && (
+                                <Box sx={{ display: "flex", justifyContent: "center" }}>
+                                  {u.role === "MENTOR" ? (
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      color="warning"
+                                      disabled={toggleMentor.isPending}
+                                      onClick={() => toggleMentor.mutate(u.id)}
+                                      startIcon={<ArrowDown size={12} />}
+                                      sx={{ textTransform: "none", py: 0.25, justifyContent: "center" }}
+                                    >
+                                      Demote
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      disabled={toggleMentor.isPending}
+                                      onClick={() => toggleMentor.mutate(u.id)}
+                                      startIcon={<ArrowUp size={12} />}
+                                      sx={{ textTransform: "none", py: 0.25 }}
+                                    >
+                                      Promote
+                                    </Button>
+                                  )}
+                                </Box>
+                              )}
+                            </Box>
+                          ))}
+                        </Stack>
+                      </>
                     )}
                   </Stack>
                 </CardContent>
@@ -442,7 +541,7 @@ const AdminDashboardPage = () => {
               <Box
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(3, 1fr)" },
                   gap: 2,
                 }}
               >
@@ -508,7 +607,7 @@ const AdminDashboardPage = () => {
                               py: 1,
                             }}
                           >
-                            <Box sx={{ pr: 12 }}>
+                            <Box sx={{ pr: { xs: 0, sm: 12 } }}>
                               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                                 {r.mentee.firstName} {r.mentee.lastName}
                                 <Typography
@@ -545,10 +644,13 @@ const AdminDashboardPage = () => {
                             </Box>
                             <Box
                               sx={{
-                                position: "absolute",
-                                top: "50%",
-                                right: 16,
-                                transform: "translateY(-50%)",
+                                mt: { xs: 1, sm: 0 },
+                                position: { xs: "static", sm: "absolute" },
+                                top: { sm: "50%" },
+                                right: { sm: 16 },
+                                transform: { sm: "translateY(-50%)" },
+                                display: "flex",
+                                justifyContent: "center"
                               }}
                             >
                               {r.isHidden ? (
