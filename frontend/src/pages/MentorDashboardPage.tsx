@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
 import { Field } from "@/components/ui/field";
 import { useToast } from "@/hooks/use-toast";
-import { Briefcase, CheckCircle, GraduationCap, Loader2, MapPin, User, XCircle, Flag, Mail, Star, Users, PenLine } from "lucide-react";
+import { Briefcase, CheckCircle, GraduationCap, Loader2, MapPin, User, XCircle, Flag, Mail, Star, Binoculars, PenLine, Crown } from "lucide-react";
 import { MentorshipSession, SessionStatus, Review } from "@/types";
 
 type Tab = "sessions" | "reviews";
@@ -117,7 +117,7 @@ const MentorDashboardPage = () => {
                 {user?.occupation && (
                   <Field label="Occupation" icon={<Briefcase className="h-3 w-3" />}>{user.occupation}</Field>
                 )}
-                {user?.expertise && <Field label="Expertise">{user.expertise}</Field>}
+                {user?.expertise && <Field label="Expertise" icon={<Crown className="h-3 w-3" />}>{user.expertise}</Field>}
                 {user?.address && (
                   <Field label="Address" icon={<MapPin className="h-3 w-3" />}>{user.address}</Field>
                 )}
@@ -128,7 +128,7 @@ const MentorDashboardPage = () => {
                     </span>
                   </Field>
                 )}
-                {user?.bio && <Field label="Bio">{user.bio}</Field>}
+                {user?.bio && <Field label="Bio" icon={<Binoculars className="h-3 w-3" />}>{user.bio}</Field>}
               </div>
 
               <div className="space-y-1 pt-2 border-t">
@@ -144,7 +144,7 @@ const MentorDashboardPage = () => {
                 </Button>
                 <Button variant="ghost" size="sm" className="w-full justify-start" asChild>
                   <Link to="/mentors">
-                    <Users className="h-4 w-4 mr-2" /> Browse Mentors
+                    <GraduationCap className="h-4 w-4 mr-2" /> Browse Mentors
                   </Link>
                 </Button>
               </div>
@@ -153,7 +153,7 @@ const MentorDashboardPage = () => {
         </aside>
 
         {/* Main */}
-        <div className="space-y-6 min-h-[calc(100vh-8rem)]">
+        <div className="space-y-6">
           <h1 className="text-3xl font-bold">Mentor Dashboard</h1>
 
           {tab === "sessions" && (

@@ -52,8 +52,7 @@ const LoginPage = () => {
       }
       setAuth(result.user, result.token);
       toast({
-        title: "Welcome back!",
-        description: `Logged in as ${result.user.firstName} ${result.user.lastName}`,
+        title: `Welcome back ${result.user.firstName} ${result.user.lastName}!`,
       });
       const paths: Record<string, string> = {
         ADMIN: "/dashboard/admin",
