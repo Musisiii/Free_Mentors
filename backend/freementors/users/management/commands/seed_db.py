@@ -13,6 +13,28 @@ from mentorship.models import MentorshipSession, Review, SessionStatus
 SEED_PASSWORD = "Password123!"
 
 
+def _safe_get_or_create_session(*, mentee, mentor, defaults):
+    """Like get_or_create, but tolerates duplicates (returns the first match
+    instead of raising MultipleObjectsReturned)."""
+    qs = MentorshipSession.objects.filter(mentee=mentee, mentor=mentor)
+    existing = qs.first()
+    if existing is not None:
+        return existing, False
+    return MentorshipSession.objects.create(
+        mentee=mentee, mentor=mentor, **defaults
+    ), True
+
+
+def _safe_get_or_create_review(*, mentee, mentor, defaults):
+    """Safe variant for Review."""
+    existing = Review.objects.filter(mentee=mentee, mentor=mentor).first()
+    if existing is not None:
+        return existing, False
+    return Review.objects.create(
+        mentee=mentee, mentor=mentor, **defaults
+    ), True
+
+
 class Command(BaseCommand):
     help = "Seed the database with test data for Free Mentors"
 
@@ -164,7 +186,7 @@ class Command(BaseCommand):
             health_mentor = mentors[2]
 
             # 2 PENDING sessions
-            session1, _ = MentorshipSession.objects.get_or_create(
+            session1, _ = _safe_get_or_create_session(
                 mentee=mentees[0],
                 mentor=tech_mentor,
                 defaults={
@@ -173,7 +195,7 @@ class Command(BaseCommand):
                 }
             )
 
-            session2, _ = MentorshipSession.objects.get_or_create(
+            session2, _ = _safe_get_or_create_session(
                 mentee=mentees[1],
                 mentor=tech_mentor,
                 defaults={
@@ -183,7 +205,7 @@ class Command(BaseCommand):
             )
 
             # 2 ACCEPTED sessions
-            session3, _ = MentorshipSession.objects.get_or_create(
+            session3, _ = _safe_get_or_create_session(
                 mentee=mentees[2],
                 mentor=finance_mentor,
                 defaults={
@@ -192,7 +214,7 @@ class Command(BaseCommand):
                 }
             )
 
-            session4, _ = MentorshipSession.objects.get_or_create(
+            session4, _ = _safe_get_or_create_session(
                 mentee=mentees[3],
                 mentor=health_mentor,
                 defaults={
@@ -202,7 +224,7 @@ class Command(BaseCommand):
             )
 
             # 1 REJECTED session
-            session5, _ = MentorshipSession.objects.get_or_create(
+            session5, _ = _safe_get_or_create_session(
                 mentee=mentees[4],
                 mentor=finance_mentor,
                 defaults={
@@ -212,7 +234,7 @@ class Command(BaseCommand):
             )
 
             # 1 COMPLETED session for review seeding
-            session6, _ = MentorshipSession.objects.get_or_create(
+            session6, _ = _safe_get_or_create_session(
                 mentee=mentees[0],
                 mentor=finance_mentor,
                 defaults={
@@ -221,7 +243,7 @@ class Command(BaseCommand):
                 }
             )
 
-            session7, _ = MentorshipSession.objects.get_or_create(
+            session7, _ = _safe_get_or_create_session(
                 mentee=mentees[3],
                 mentor=tech_mentor,
                 defaults={
@@ -233,7 +255,7 @@ class Command(BaseCommand):
             self.stdout.write("Creating reviews...")
 
             # Review 1 - visible
-            Review.objects.get_or_create(
+            _safe_get_or_create_review(
                 mentee=mentees[0],
                 mentor=finance_mentor,
                 defaults={
@@ -244,7 +266,7 @@ class Command(BaseCommand):
             )
 
             # Review 2 - visible
-            Review.objects.get_or_create(
+            _safe_get_or_create_review(
                 mentee=mentees[3],
                 mentor=tech_mentor,
                 defaults={
@@ -255,7 +277,7 @@ class Command(BaseCommand):
             )
 
             # Review 3 - hidden
-            Review.objects.get_or_create(
+            _safe_get_or_create_review(
                 mentee=mentees[3],
                 mentor=tech_mentor,
                 defaults={
