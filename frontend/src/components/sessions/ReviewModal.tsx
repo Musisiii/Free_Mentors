@@ -24,11 +24,19 @@ export function ReviewModal({ open, onOpenChange, mentor }: Props) {
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const res = await gql<{
-        createReview: { success: boolean; errors: string[] | null };
-      }>(CREATE_REVIEW_MUTATION, { mentorId: mentor.id, remark, score });
-      if (!res.createReview.success) {
-        throw new Error(res.createReview.errors?.[0] || "Failed to submit review");
+      try {
+        console.log("Submitting review with:", { mentorId: mentor.id, remark, score });
+        const res = await gql<{
+          createReview: { success: boolean; errors: string[] | null; review?: any };
+        }>(CREATE_REVIEW_MUTATION, { mentorId: mentor.id, remark, score });
+        console.log("Review response:", res);
+        if (!res.createReview.success) {
+          throw new Error(res.createReview.errors?.[0] || "Failed to submit review");
+        }
+        return res.createReview;
+      } catch (error: any) {
+        console.error("Review mutation error:", error);
+        throw error;
       }
     },
     onSuccess: () => {
@@ -39,7 +47,9 @@ export function ReviewModal({ open, onOpenChange, mentor }: Props) {
       onOpenChange(false);
     },
     onError: (err: any) => {
-      toast({ title: "Could not submit review", description: err.message, variant: "destructive" });
+      const errorMsg = err.message || "An unknown error occurred";
+      console.error("Toast error:", errorMsg);
+      toast({ title: "Could not submit review", description: errorMsg, variant: "destructive" });
     },
   });
 
