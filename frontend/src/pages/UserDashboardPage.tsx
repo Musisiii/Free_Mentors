@@ -363,41 +363,67 @@ const UserDashboardPage = () => {
                           <Stack spacing={1}>
                             <Box
                               sx={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "flex-start",
-                                gap: 1,
+                                display: 'flex',
+                                alignItems: "center",
+                                gap: { xs: 1, sm: 1.5 },
                               }}
                             >
-                              <Box>
-                                <Typography sx={{ fontWeight: 600 }}>
-                                  {s.mentor.firstName} {s.mentor.lastName}
-                                </Typography>
-                                {s.mentor.occupation && (
-                                  <Stack
-                                    direction="row"
-                                    spacing={0.5}
-                                    sx={{
-                                      alignItems: "center",
-                                      fontSize: "0.75rem",
-                                      color: "text.secondary",
-                                    }}
-                                  >
-                                    <Briefcase size={12} />
-                                    <span>{s.mentor.occupation}</span>
-                                  </Stack>
-                                )}
-                              </Box>
-                              <Chip
-                                label={s.status}
-                                size="small"
+                              <Box
                                 sx={{
-                                  height: 20,
-                                  fontSize: "0.625rem",
-                                  fontWeight: 600,
-                                  ...(statusChipSx[s.status] ?? {}),
+                                  width: 36,
+                                  height: 36,
+                                  flexShrink: 0,
+                                  borderRadius: "50%",
+                                  bgcolor: "rgba(0,0,0,0.05)",
+                                  display: { xs: 'none', sm: 'inline-flex' },
+                                  alignItems: "center",
+                                  justifyContent: "center",
                                 }}
-                              />
+                              >
+                                <User
+                                  size={16}
+                                  color={theme.palette.primary.main}
+                                />
+                              </Box>
+                              <Box
+                                sx={{
+                                  flex: 1,
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "flex-start",
+                                  // gap: { xs: 1, sm: 1.5 },
+                                }}
+                              >
+                                <Box>
+                                  <Typography sx={{ fontWeight: 600 }}>
+                                    {s.mentor.firstName} {s.mentor.lastName}
+                                  </Typography>
+                                  {s.mentor.occupation && (
+                                    <Stack
+                                      direction="row"
+                                      spacing={0.5}
+                                      sx={{
+                                        alignItems: "center",
+                                        fontSize: "0.75rem",
+                                        color: "text.secondary",
+                                      }}
+                                    >
+                                      <Briefcase size={12} />
+                                      <span>{s.mentor.occupation}</span>
+                                    </Stack>
+                                  )}
+                                </Box>
+                                <Chip
+                                  label={s.status}
+                                  size="small"
+                                  sx={{
+                                    height: 20,
+                                    fontSize: "0.625rem",
+                                    fontWeight: 600,
+                                    ...(statusChipSx[s.status] ?? {}),
+                                  }}
+                                />
+                              </Box>
                             </Box>
                             <Typography
                               sx={{
@@ -414,6 +440,7 @@ const UserDashboardPage = () => {
                             <Box
                               sx={{
                                 display: "flex",
+                                flexDirection: { xs: "column", sm: "row" },
                                 justifyContent: "space-between",
                                 alignItems: "center",
                                 pt: 1,
@@ -434,7 +461,7 @@ const UserDashboardPage = () => {
                                   setIsComplete(s.status === "COMPLETED");
                                   setModalOpen(true);
                                 }}
-                                sx={{ textTransform: "none", py: 0.25, minHeight: 0 }}
+                                sx={{ textTransform: "none", py: 0.25, minHeight: 0, mt: { xs: 1, sm: 0 } }}
                               >
                                 View Mentor
                               </Button>

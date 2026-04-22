@@ -101,7 +101,12 @@ export const MainLayout = () => {
           variant="body2"
           sx={{ color: "text.secondary", opacity: 0.6 }}
         >
-          © 2026 Free Mentors. Connecting learners with experienced mentors.
+          <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
+            © 2026 Free Mentors.
+          </Box>
+          <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+            © 2026 Free Mentors. Connecting learners with experienced mentors.
+          </Box>
         </Typography>
       </Box>
     </Box>
