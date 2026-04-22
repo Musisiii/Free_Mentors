@@ -1,13 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -68,34 +61,24 @@ export function SessionRequestModal({ open, onOpenChange, mentor }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>
-            Request a session with {mentor.firstName} {mentor.lastName}
-          </DialogTitle>
+          <DialogTitle>Request a session with {mentor.firstName} {mentor.lastName}</DialogTitle>
           <DialogDescription>
-            Briefly describe the topic and any specific questions you'd like to discuss. The
-            mentor will accept or decline your request.
+            Briefly describe the topic and any specific questions you'd like to discuss. 
+            The mentor will accept or decline your request based on their availability and expertise.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="questions">Topic & questions</Label>
-            <Textarea
-              id="questions"
-              rows={5}
+            <Textarea id="questions" rows={5} value={questions} onChange={(e) => setQuestions(e.target.value)} required
               placeholder="e.g. I'd love guidance on transitioning into backend engineering. What roadmap would you recommend?"
-              value={questions}
-              onChange={(e) => setQuestions(e.target.value)}
-              required
             />
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Send Request
+              {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Send Request
             </Button>
           </DialogFooter>
         </form>
