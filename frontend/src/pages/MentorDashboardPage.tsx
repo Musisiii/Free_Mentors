@@ -1,29 +1,75 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gql } from "@/lib/graphql";
-import { MY_SESSIONS_QUERY, UPDATE_SESSION_STATUS_MUTATION, ALL_REVIEWS_QUERY } from "@/lib/queries";
+import {
+  MY_SESSIONS_QUERY,
+  UPDATE_SESSION_STATUS_MUTATION,
+  ALL_REVIEWS_QUERY,
+} from "@/lib/queries";
 import { useAuthStore } from "@/stores/authStore";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { StatCard } from "@/components/ui/stat-card";
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Container,
+  Stack,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import { Field } from "@/components/ui/field";
+import { StatCard } from "@/components/ui/stat-card";
 import { useToast } from "@/hooks/use-toast";
-import { Briefcase, CheckCircle, GraduationCap, Loader2, MapPin, User, XCircle, Flag, Mail, Star, Binoculars, PenLine, Crown } from "lucide-react";
+import {
+  Briefcase,
+  CheckCircle,
+  GraduationCap,
+  MapPin,
+  User,
+  XCircle,
+  Flag,
+  Mail,
+  Star,
+  Binoculars,
+  PenLine,
+  Crown,
+  LogOut,
+} from "lucide-react";
 import { MentorshipSession, SessionStatus, Review } from "@/types";
 
 type Tab = "sessions" | "reviews";
 type SessionCategory = "all" | "pending" | "accepted" | "rejected" | "completed";
-type ReviewCategory = "all" | "visible" | "hidden";
+
+const statusChipSx: Record<string, any> = {
+  PENDING: { bgcolor: "rgba(113, 63, 18, 0.5)", color: "#facc15" },
+  ACCEPTED: { bgcolor: "rgba(58, 88, 65, 0.2)", color: "primary.main" },
+  COMPLETED: { bgcolor: "rgba(30, 58, 138, 0.5)", color: "#60a5fa" },
+  REJECTED: { bgcolor: "rgba(239, 68, 68, 0.15)", color: "#ef4444" },
+};
+
+const roleChipSx: Record<string, any> = {
+  ADMIN: { bgcolor: "rgba(30, 58, 138, 0.5)", color: "#60a5fa" },
+  MENTOR: { bgcolor: "rgba(58, 88, 65, 0.2)", color: "primary.main" },
+  USER: { bgcolor: "rgba(113, 63, 18, 0.5)", color: "#facc15" },
+};
 
 const MentorDashboardPage = () => {
-  const { user } = useAuthStore();
+  const theme = useTheme();
+  const { user, clearAuth } = useAuthStore();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const handleLogout = () => {
+    clearAuth();
+    toast({ title: `See you next time ${user?.firstName} ${user?.lastName}!` });
+    navigate("/login");
+  };
   const [tab, setTab] = useState<Tab>("sessions");
-  const [selectedSessionCategory, setSelectedSessionCategory] = useState<SessionCategory>("all");
-  const [selectedReviewCategory, setSelectedReviewCategory] = useState<ReviewCategory>("all");
+  const [selectedSessionCategory, setSelectedSessionCategory] =
+    useState<SessionCategory>("all");
 
   const { data: sessions, isLoading: sessionLoading } = useQuery({
     queryKey: ["my-sessions"],
@@ -41,16 +87,22 @@ const MentorDashboardPage = () => {
     },
   });
 
-  const mentorReviews = (reviews ?? []).filter((r) => r.mentor?.id === user.id);
+  const mentorReviews = (reviews ?? []).filter((r) => r.mentor?.id === user?.id);
   const avgScore = mentorReviews.length
     ? mentorReviews.reduce((s, r) => s + r.score, 0) / mentorReviews.length
     : 0;
 
   const updateStatus = useMutation({
-    mutationFn: async ({ sessionId, status }: { sessionId: string; status: SessionStatus }) => {
-      const res = await gql<{updateSessionStatus: { success: boolean; errors: string[] | null }}>(
-        UPDATE_SESSION_STATUS_MUTATION, { sessionId, status }
-      );
+    mutationFn: async ({
+      sessionId,
+      status,
+    }: {
+      sessionId: string;
+      status: SessionStatus;
+    }) => {
+      const res = await gql<{
+        updateSessionStatus: { success: boolean; errors: string[] | null };
+      }>(UPDATE_SESSION_STATUS_MUTATION, { sessionId, status });
       if (!res.updateSessionStatus.success) {
         throw new Error(res.updateSessionStatus.errors?.[0] || "Update failed");
       }
@@ -63,7 +115,11 @@ const MentorDashboardPage = () => {
       queryClient.invalidateQueries({ queryKey: ["my-sessions"] });
     },
     onError: (err: any) => {
-      toast({ title: "Update failed", description: err.message, variant: "destructive" });
+      toast({
+        title: "Update failed",
+        description: err.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -78,7 +134,7 @@ const MentorDashboardPage = () => {
     };
   }, [sessions]);
 
-  const getFilteredSessions = () => {
+  const filteredSessions = useMemo(() => {
     if (!sessions) return [];
     switch (selectedSessionCategory) {
       case "pending":
@@ -92,161 +148,430 @@ const MentorDashboardPage = () => {
       default:
         return sessions;
     }
-  };
+  }, [sessions, selectedSessionCategory]);
 
-  const filteredSessions = getFilteredSessions();
+  const navBtnSx = (active: boolean) => ({
+    width: "100%",
+    justifyContent: "flex-start",
+    bgcolor: active ? "secondary.main" : "transparent",
+    color: active ? "secondary.contrastText" : "text.primary",
+    "&:hover": {
+      bgcolor: active ? "secondary.main" : "rgba(0,0,0,0.04)",
+    },
+  });
 
   return (
-    <div className="container max-w-6xl mx-auto p-4 py-8">
-      <div className="grid lg:grid-cols-[280px,1fr] gap-6 items-start">
-        {/* Profile */}
-        <aside className="lg:sticky lg:top-40">
+    <Container maxWidth="lg" sx={{ p: 2, py: 4 }}>
+      <Box
+        sx={{
+          display: "grid",
+          gap: 3,
+          alignItems: "start",
+          gridTemplateColumns: { xs: "1fr", lg: "280px 1fr" },
+        }}
+      >
+        {/* Profile sidebar */}
+        <Box
+          component="aside"
+          sx={{ position: { lg: "sticky" }, top: { lg: 160 } }}
+        >
           <Card>
-            <CardContent className="pt-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-full bg-primary/10 p-3">
-                  <GraduationCap className="h-6 w-6 text-primary" /></div>
-                <div>
-                  <div className="font-semibold">{user?.firstName} {user?.lastName}</div>
-                  <div className="text-xs text-muted-foreground">{user?.email}</div>
-                  <Badge className="mt-1">{user?.role}</Badge>
-                </div>
-              </div>
+            <CardContent>
+              <Stack spacing={2} sx={{ pt: 0.5 }}>
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      flexShrink: 0,
+                      borderRadius: "50%",
+                      bgcolor: "rgba(58, 88, 65, 0.1)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <GraduationCap
+                      size={24}
+                      color={theme.palette.primary.main}
+                    />
+                  </Box>
+                  <Box>
+                    <Typography sx={{ fontWeight: 600 }}>
+                      {user?.firstName} {user?.lastName}
+                    </Typography>
+                    <Typography
+                      sx={{ fontSize: "0.75rem", color: "text.secondary" }}
+                    >
+                      {user?.email}
+                    </Typography>
+                    <Chip
+                      label={user?.role}
+                      size="small"
+                      sx={{
+                        mt: 0.5,
+                        height: 20,
+                        fontSize: "0.625rem",
+                        fontWeight: 600,
+                        ...(roleChipSx[user?.role ?? "MENTOR"] ?? {}),
+                      }}
+                    />
+                  </Box>
+                </Stack>
 
-              <div className="space-y-2 text-sm font-medium border-t pt-4">
-                {user?.occupation && (
-                  <Field label="Occupation" icon={<Briefcase className="h-3 w-3" />}>{user.occupation}</Field>
-                )}
-                {user?.expertise && <Field label="Expertise" icon={<Crown className="h-3 w-3" />}>{user.expertise}</Field>}
-                {user?.address && (
-                  <Field label="Address" icon={<MapPin className="h-3 w-3" />}>{user.address}</Field>
-                )}
-                {mentorReviews.length > 0 && (
-                  <Field label="Rating" icon={<Star className="h-3 w-3 text-amber-500" />}>
-                    <span>
-                      {avgScore.toFixed(1)} ({mentorReviews.length} review{mentorReviews.length === 1 ? "" : "s"})
-                    </span>
-                  </Field>
-                )}
-                {user?.bio && <Field label="Bio" icon={<Binoculars className="h-3 w-3" />}>{user.bio}</Field>}
-              </div>
+                <Stack
+                  spacing={1}
+                  sx={{
+                    fontSize: "0.875rem",
+                    fontWeight: 500,
+                    borderTop: 1,
+                    borderColor: "divider",
+                    pt: 2,
+                  }}
+                >
+                  {user?.occupation && (
+                    <Field label="Occupation" icon={<Briefcase size={12} />}>
+                      {user.occupation}
+                    </Field>
+                  )}
+                  {user?.expertise && (
+                    <Field label="Expertise" icon={<Crown size={12} />}>
+                      {user.expertise}
+                    </Field>
+                  )}
+                  {user?.address && (
+                    <Field label="Address" icon={<MapPin size={12} />}>
+                      {user.address}
+                    </Field>
+                  )}
+                  {mentorReviews.length > 0 && (
+                    <Field
+                      label="Rating"
+                      icon={<Star size={12} color="#f59e0b" />}
+                    >
+                      <span>
+                        {avgScore.toFixed(1)} ({mentorReviews.length} review
+                        {mentorReviews.length === 1 ? "" : "s"})
+                      </span>
+                    </Field>
+                  )}
+                  {user?.bio && (
+                    <Field label="Bio" icon={<Binoculars size={12} />}>
+                      {user.bio}
+                    </Field>
+                  )}
+                </Stack>
 
-              <div className="space-y-1 pt-2 border-t">
-                <Button variant={tab === "sessions" ? "secondary" : "ghost"} size="sm" className="w-full justify-start"
-                  onClick={() => setTab("sessions")}
+                <Stack
+                  spacing={0.5}
+                  sx={{ pt: 1, borderTop: 1, borderColor: "divider" }}
                 >
-                  <PenLine className="h-4 w-4 mr-2" /> Sessions
-                </Button>
-                <Button variant={tab === "reviews" ? "secondary" : "ghost"} size="sm" className="w-full justify-start"
-                  onClick={() => setTab("reviews")}
-                >
-                  <Star className="h-4 w-4 mr-2" /> Reviews
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start" asChild>
-                  <Link to="/mentors">
-                    <GraduationCap className="h-4 w-4 mr-2" /> Browse Mentors
-                  </Link>
-                </Button>
-              </div>
+                  <Button
+                    size="small"
+                    startIcon={<PenLine size={16} />}
+                    onClick={() => setTab("sessions")}
+                    sx={navBtnSx(tab === "sessions")}
+                  >
+                    Sessions
+                  </Button>
+                  <Button
+                    size="small"
+                    startIcon={<Star size={16} />}
+                    onClick={() => setTab("reviews")}
+                    sx={navBtnSx(tab === "reviews")}
+                  >
+                    Reviews
+                  </Button>
+                  <Button
+                    size="small"
+                    component={RouterLink}
+                    to="/mentors"
+                    startIcon={<GraduationCap size={16} />}
+                    sx={navBtnSx(false)}
+                  >
+                    Browse Mentors
+                  </Button>
+                </Stack>
+
+                <Box sx={{ pt: 1, borderTop: 1, borderColor: "divider" }}>
+                  <Button
+                    size="small"
+                    onClick={handleLogout}
+                    startIcon={<LogOut size={16} />}
+                    sx={{
+                      ...navBtnSx(false),
+                      color: "#ef4444",
+                      "&:hover": { bgcolor: "rgba(239, 68, 68, 0.1)" },
+                    }}
+                  >
+                    Logout
+                  </Button>
+                </Box>
+              </Stack>
             </CardContent>
           </Card>
-        </aside>
+        </Box>
 
-        {/* Main */}
-        <div className="space-y-6">
-          <h1 className="text-3xl font-bold">Mentor Dashboard</h1>
+        {/* Main column */}
+        <Stack spacing={3}>
+          <Typography
+            component="h1"
+            sx={{ fontSize: "1.875rem", fontWeight: 700 }}
+          >
+            Mentor Dashboard
+          </Typography>
 
           {tab === "sessions" && (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                <StatCard label="Total" value={counts.total} loading={sessionLoading} icon={<></>}
+              <Box
+                sx={{
+                  display: "grid",
+                  gap: 2,
+                  gridTemplateColumns: {
+                    xs: "repeat(2, 1fr)",
+                    sm: "repeat(5, 1fr)",
+                  },
+                }}
+              >
+                <StatCard
+                  label="Total"
+                  value={counts.total}
+                  loading={sessionLoading}
+                  icon={<></>}
                   isActive={selectedSessionCategory === "all"}
                   onClick={() => setSelectedSessionCategory("all")}
                 />
-                <StatCard label="Pending" value={counts.pending} loading={sessionLoading} icon={<></>}
+                <StatCard
+                  label="Pending"
+                  value={counts.pending}
+                  loading={sessionLoading}
+                  icon={<></>}
                   isActive={selectedSessionCategory === "pending"}
                   onClick={() => setSelectedSessionCategory("pending")}
                 />
-                <StatCard label="Accepted" value={counts.accepted} loading={sessionLoading} icon={<></>}
+                <StatCard
+                  label="Accepted"
+                  value={counts.accepted}
+                  loading={sessionLoading}
+                  icon={<></>}
                   isActive={selectedSessionCategory === "accepted"}
                   onClick={() => setSelectedSessionCategory("accepted")}
                 />
-                <StatCard label="Rejected" value={counts.rejected} loading={sessionLoading} icon={<></>}
+                <StatCard
+                  label="Rejected"
+                  value={counts.rejected}
+                  loading={sessionLoading}
+                  icon={<></>}
                   isActive={selectedSessionCategory === "rejected"}
                   onClick={() => setSelectedSessionCategory("rejected")}
                 />
-                <StatCard label="Completed" value={counts.completed} loading={sessionLoading} icon={<></>}
+                <StatCard
+                  label="Completed"
+                  value={counts.completed}
+                  loading={sessionLoading}
+                  icon={<></>}
                   isActive={selectedSessionCategory === "completed"}
                   onClick={() => setSelectedSessionCategory("completed")}
                 />
-              </div>
+              </Box>
 
               <Card>
-                <CardContent className="pt-6 space-y-4">
-                  <h2 className="text-xl font-semibold">Session Requests</h2>
+                <CardContent>
+                  <Stack spacing={2} sx={{ pt: 0.5 }}>
+                    <Typography
+                      component="h2"
+                      sx={{ fontSize: "1.25rem", fontWeight: 600 }}
+                    >
+                      Session Requests
+                    </Typography>
 
-                  {sessionLoading ? (
-                    <div className="flex justify-center py-12">
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : filteredSessions.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground">No sessions in this view.</div>
-                  ) : (
-                    <div className="space-y-3">
-                      {filteredSessions.map((s) => {
-                        const isPending = updateStatus.isPending;
-                        return (
-                          <div key={s.id} className="border rounded-lg p-4 space-y-3 hover:bg-secondary/20">
-                            <div className="flex items-start justify-between flex-wrap gap-2">
-                              <div className="flex items-center gap-3">
-                                <div className="rounded-full bg-muted p-2"><User className="h-4 w-4 text-primary" /></div>
-                                <div>
-                                  <div className="font-semibold">{s.mentee.firstName} {s.mentee.lastName}</div>
-                                  <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                    <Mail className="h-3 w-3" /> {s.mentee.email}
-                                  </div>
-                                </div>
-                              </div>
-                              <Badge variant={
-                                s.status === 'PENDING' ? 'user' :
-                                s.status === 'ACCEPTED' ? 'default' :
-                                s.status === 'COMPLETED' ? 'admin' :
-                                s.status === 'REJECTED' ? 'destructive' :
-                                'secondary'
-                              }>{s.status}</Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground whitespace-pre-line">{s.questions}</p>
-                            <div className="flex items-center justify-between flex-wrap gap-2 pt-1 text-xs text-muted-foreground">
-                              <span>Requested at {new Date(s.createdAt).toLocaleString()}</span>
-                              <div className="flex gap-2">
-                                {s.status === "PENDING" && (
-                                  <>
-                                    <Button size="sm" variant="outline" disabled={isPending}
-                                      onClick={() => updateStatus.mutate({ sessionId: s.id, status: "ACCEPTED" })}
-                                    >
-                                      <CheckCircle className="h-3 w-3 mr-1" /> Accept
-                                    </Button>
-                                    <Button size="sm" variant="outline_destructive" disabled={isPending}
-                                      onClick={() => updateStatus.mutate({ sessionId: s.id, status: "REJECTED" })}
-                                    >
-                                      <XCircle className="h-3 w-3 mr-1" /> Decline
-                                    </Button>
-                                  </>
-                                )}
-                                {s.status === "ACCEPTED" && (
-                                  <Button size="sm" variant="outline_complete" disabled={isPending}
-                                    onClick={() => updateStatus.mutate({ sessionId: s.id, status: "COMPLETED" })}
+                    {sessionLoading ? (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "center",
+                          py: 6,
+                        }}
+                      >
+                        <CircularProgress
+                          size={24}
+                          sx={{ color: "text.secondary" }}
+                        />
+                      </Box>
+                    ) : filteredSessions.length === 0 ? (
+                      <Typography
+                        sx={{
+                          textAlign: "center",
+                          py: 6,
+                          color: "text.secondary",
+                        }}
+                      >
+                        No sessions in this view.
+                      </Typography>
+                    ) : (
+                      <Stack spacing={1.5}>
+                        {filteredSessions.map((s) => {
+                          const isPending = updateStatus.isPending;
+                          return (
+                            <Box
+                              key={s.id}
+                              sx={{
+                                border: 1,
+                                borderColor: "divider",
+                                borderRadius: 1.5,
+                                p: 2,
+                                "&:hover": { bgcolor: "rgba(0,0,0,0.03)" },
+                              }}
+                            >
+                              <Stack spacing={1.5}>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "flex-start",
+                                    justifyContent: "space-between",
+                                    flexWrap: "wrap",
+                                    gap: 1,
+                                  }}
+                                >
+                                  <Stack
+                                    direction="row"
+                                    spacing={1.5}
+                                    alignItems="center"
                                   >
-                                    <Flag className="h-3 w-3 mr-1" /> Mark Completed
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                                    <Box
+                                      sx={{
+                                        width: 36,
+                                        height: 36,
+                                        flexShrink: 0,
+                                        borderRadius: "50%",
+                                        bgcolor: "rgba(0,0,0,0.05)",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                      }}
+                                    >
+                                      <User
+                                        size={16}
+                                        color={theme.palette.primary.main}
+                                      />
+                                    </Box>
+                                    <Box>
+                                      <Typography sx={{ fontWeight: 600 }}>
+                                        {s.mentee.firstName} {s.mentee.lastName}
+                                      </Typography>
+                                      <Stack
+                                        direction="row"
+                                        spacing={0.5}
+                                        alignItems="center"
+                                        sx={{
+                                          fontSize: "0.75rem",
+                                          color: "text.secondary",
+                                        }}
+                                      >
+                                        <Mail size={12} />
+                                        <span>{s.mentee.email}</span>
+                                      </Stack>
+                                    </Box>
+                                  </Stack>
+                                  <Chip
+                                    label={s.status}
+                                    size="small"
+                                    sx={{
+                                      height: 20,
+                                      fontSize: "0.625rem",
+                                      fontWeight: 600,
+                                      ...(statusChipSx[s.status] ?? {}),
+                                    }}
+                                  />
+                                </Box>
+                                <Typography
+                                  sx={{
+                                    fontSize: "0.875rem",
+                                    color: "text.secondary",
+                                    whiteSpace: "pre-line",
+                                  }}
+                                >
+                                  {s.questions}
+                                </Typography>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    flexWrap: "wrap",
+                                    gap: 1,
+                                    pt: 0.5,
+                                    fontSize: "0.75rem",
+                                    color: "text.secondary",
+                                  }}
+                                >
+                                  <span>
+                                    Requested at{" "}
+                                    {new Date(s.createdAt).toLocaleString()}
+                                  </span>
+                                  <Stack direction="row" spacing={1}>
+                                    {s.status === "PENDING" && (
+                                      <>
+                                        <Button
+                                          size="small"
+                                          variant="outlined"
+                                          disabled={isPending}
+                                          startIcon={<CheckCircle size={12} />}
+                                          onClick={() =>
+                                            updateStatus.mutate({
+                                              sessionId: s.id,
+                                              status: "ACCEPTED",
+                                            })
+                                          }
+                                          sx={{ textTransform: "none", py: 0.25, minHeight: 0 }}
+                                        >
+                                          Accept
+                                        </Button>
+                                        <Button
+                                          size="small"
+                                          variant="outlined"
+                                          color="error"
+                                          disabled={isPending}
+                                          startIcon={<XCircle size={12} />}
+                                          onClick={() =>
+                                            updateStatus.mutate({
+                                              sessionId: s.id,
+                                              status: "REJECTED",
+                                            })
+                                          }
+                                          sx={{ textTransform: "none", py: 0.25, minHeight: 0 }}
+                                        >
+                                          Decline
+                                        </Button>
+                                      </>
+                                    )}
+                                    {s.status === "ACCEPTED" && (
+                                      <Button
+                                        size="small"
+                                        variant="outlined"
+                                        color="info"
+                                        disabled={isPending}
+                                        startIcon={<Flag size={12} />}
+                                        onClick={() =>
+                                          updateStatus.mutate({
+                                            sessionId: s.id,
+                                            status: "COMPLETED",
+                                          })
+                                        }
+                                        sx={{ textTransform: "none", py: 0.25, minHeight: 0 }}
+                                      >
+                                        Mark Completed
+                                      </Button>
+                                    )}
+                                  </Stack>
+                                </Box>
+                              </Stack>
+                            </Box>
+                          );
+                        })}
+                      </Stack>
+                    )}
+                  </Stack>
                 </CardContent>
               </Card>
             </>
@@ -254,38 +579,95 @@ const MentorDashboardPage = () => {
 
           {tab === "reviews" && (
             <Card>
-              <CardContent className="pt-6 space-y-4">
-                <h2 className="text-xl font-semibold">My Reviews</h2>
+              <CardContent>
+                <Stack spacing={2} sx={{ pt: 0.5 }}>
+                  <Typography
+                    component="h2"
+                    sx={{ fontSize: "1.25rem", fontWeight: 600 }}
+                  >
+                    My Reviews
+                  </Typography>
 
-                {reviewLoading ? (
-                  <div className="flex justify-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : mentorReviews.length === 0 ? (
-                  <p className="text-center py-12 text-muted-foreground">No reviews yet.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {mentorReviews.map((r) => (
-                      <div key={r.id} className="border-l-2 border-primary/40 pl-3 hover:bg-secondary/30">
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="font-medium">{r.mentee.firstName} {r.mentee.lastName}</span>
-                          <span className="flex items-center gap-1 text-amber-600">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                              <Star key={i} className={`h-3 w-3 ${i < r.score ? "fill-current" : "text-gray-300"}`}/>
-                            ))}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">{r.remark}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                  {reviewLoading ? (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        py: 6,
+                      }}
+                    >
+                      <CircularProgress
+                        size={24}
+                        sx={{ color: "text.secondary" }}
+                      />
+                    </Box>
+                  ) : mentorReviews.length === 0 ? (
+                    <Typography
+                      sx={{
+                        textAlign: "center",
+                        py: 6,
+                        color: "text.secondary",
+                      }}
+                    >
+                      No reviews yet.
+                    </Typography>
+                  ) : (
+                    <Stack spacing={2.5}>
+                      {mentorReviews.map((r) => (
+                        <Box
+                          key={r.id}
+                          sx={{
+                            borderLeft: 2,
+                            borderColor: "rgba(58, 88, 65, 0.4)",
+                            pl: 1.5,
+                            "&:hover": { bgcolor: "rgba(0,0,0,0.03)" },
+                          }}
+                        >
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            alignItems="center"
+                          >
+                            <Typography
+                              sx={{ fontSize: "0.875rem", fontWeight: 500 }}
+                            >
+                              {r.mentee.firstName} {r.mentee.lastName}
+                            </Typography>
+                            <Stack
+                              direction="row"
+                              spacing={0.25}
+                              alignItems="center"
+                            >
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <Star
+                                  key={i}
+                                  size={12}
+                                  color={i < r.score ? "#d97706" : "#d1d5db"}
+                                  fill={i < r.score ? "#d97706" : "none"}
+                                />
+                              ))}
+                            </Stack>
+                          </Stack>
+                          <Typography
+                            sx={{
+                              fontSize: "0.875rem",
+                              color: "text.secondary",
+                              mt: 0.5,
+                            }}
+                          >
+                            {r.remark}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Stack>
+                  )}
+                </Stack>
               </CardContent>
             </Card>
           )}
-        </div>
-      </div>
-    </div>
+        </Stack>
+      </Box>
+    </Container>
   );
 };
 

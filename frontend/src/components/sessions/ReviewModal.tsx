@@ -1,13 +1,23 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  IconButton,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { gql } from "@/lib/graphql";
 import { CREATE_REVIEW_MUTATION } from "@/lib/queries";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { User } from "@/types";
 
 interface Props {
@@ -25,11 +35,14 @@ export function ReviewModal({ open, onOpenChange, mentor }: Props) {
   const mutation = useMutation({
     mutationFn: async () => {
       const res = await gql<{
-        createReview: { success: boolean; errors: string[] | null };
+        createReview: { success: boolean; errors: string[] | null; review?: any };
       }>(CREATE_REVIEW_MUTATION, { mentorId: mentor.id, remark, score });
       if (!res.createReview.success) {
-        throw new Error(res.createReview.errors?.[0] || "Failed to submit review");
+        throw new Error(
+          res.createReview.errors?.[0] || "Failed to submit review",
+        );
       }
+      return res.createReview;
     },
     onSuccess: () => {
       toast({ title: "Thanks for your feedback!" });
@@ -39,7 +52,11 @@ export function ReviewModal({ open, onOpenChange, mentor }: Props) {
       onOpenChange(false);
     },
     onError: (err: any) => {
-      toast({ title: "Could not submit review", description: err.message, variant: "destructive" });
+      toast({
+        title: "Could not submit review",
+        description: err.message || "An unknown error occurred",
+        variant: "destructive",
+      });
     },
   });
 
@@ -52,39 +69,88 @@ export function ReviewModal({ open, onOpenChange, mentor }: Props) {
     mutation.mutate();
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Review {mentor.firstName} {mentor.lastName}</DialogTitle>
-          <DialogDescription>Share how the session went so other learners can find great mentors.</DialogDescription>
-        </DialogHeader>
+  const handleClose = () => {
+    setRemark("");
+    setScore(5);
+    onOpenChange(false);
+  };
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Rating</Label>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button key={n} type="button" onClick={() => setScore(n)} className="p-1" aria-label={`Rate ${n}`}>
-                  <Star className={`h-7 w-7 ${n <= score ? "fill-amber-600/70 text-amber-600/30" : "text-muted-foreground"}`} />
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="remark">Remarks</Label>
-            <Textarea id="remark" rows={4} value={remark} onChange={(e) => setRemark(e.target.value)} required
-              placeholder="What did you like? Any feedback for the mentor?"
-            />
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Submit Review
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+      <Box component="form" onSubmit={handleSubmit}>
+        <DialogTitle sx={{ fontSize: "1.125rem", fontWeight: 600 }}>
+          Review {mentor.firstName} {mentor.lastName}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2, fontSize: "0.875rem" }}>
+            Share how the session went so other learners can find great mentors.
+          </DialogContentText>
+
+          <Stack spacing={2}>
+            <Stack spacing={1}>
+              <Typography sx={{ fontSize: "0.875rem", fontWeight: 500 }}>
+                Rating
+              </Typography>
+              <Stack direction="row" spacing={0.5}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <IconButton
+                    key={n}
+                    type="button"
+                    onClick={() => setScore(n)}
+                    aria-label={`Rate ${n}`}
+                    size="small"
+                    sx={{ p: 0.5 }}
+                  >
+                    <Star
+                      size={28}
+                      color={n <= score ? "rgba(217, 119, 6, 0.7)" : "#9ca3af"}
+                      fill={n <= score ? "rgba(217, 119, 6, 0.7)" : "none"}
+                    />
+                  </IconButton>
+                ))}
+              </Stack>
+            </Stack>
+
+            <Stack spacing={1}>
+              <Typography
+                component="label"
+                htmlFor="remark"
+                sx={{ fontSize: "0.875rem", fontWeight: 500 }}
+              >
+                Remarks
+              </Typography>
+              <TextField
+                id="remark"
+                value={remark}
+                onChange={(e) => setRemark(e.target.value)}
+                required
+                multiline
+                rows={4}
+                fullWidth
+                size="small"
+                placeholder="What did you like? Any feedback for the mentor?"
+              />
+            </Stack>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button type="button" variant="outlined" onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={mutation.isPending}
+            startIcon={
+              mutation.isPending ? (
+                <CircularProgress size={16} color="inherit" />
+              ) : null
+            }
+          >
+            Submit Review
+          </Button>
+        </DialogActions>
+      </Box>
     </Dialog>
   );
 }
