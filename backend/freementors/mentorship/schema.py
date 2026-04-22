@@ -85,37 +85,43 @@ class CreateReviewMutation(graphene.Mutation):
     errors = graphene.List(graphene.String)
 
     def mutate(self, info, mentor_id, remark, score):
-        user = info.context.user
-        if not user.is_authenticated:
-            return CreateReviewMutation(success=False, errors=["Authentication required."])
-
-        if not 1 <= score <= 5:
-            return CreateReviewMutation(success=False, errors=["Score must be between 1 and 5."])
-
         try:
-            mentor = CustomUser.objects.get(id=mentor_id, role=RoleChoices.MENTOR)
-        except CustomUser.DoesNotExist:
-            return CreateReviewMutation(success=False, errors=["Mentor not found."])
+            user = info.context.user
+            if not user.is_authenticated:
+                return CreateReviewMutation(success=False, errors=["Authentication required."])
 
-        has_completed_session = MentorshipSession.objects.filter(
-            mentee=user,
-            mentor=mentor,
-            status=SessionStatus.COMPLETED,
-        ).exists()
+            if not 1 <= score <= 5:
+                return CreateReviewMutation(success=False, errors=["Score must be between 1 and 5."])
 
-        if not has_completed_session:
-            return CreateReviewMutation(
-                success=False,
-                errors=["You can only review a mentor after completing a session with them."]
+            try:
+                mentor = CustomUser.objects.get(id=mentor_id, role=RoleChoices.MENTOR)
+            except CustomUser.DoesNotExist:
+                return CreateReviewMutation(success=False, errors=["Mentor not found."])
+
+            has_completed_session = MentorshipSession.objects.filter(
+                mentee=user,
+                mentor=mentor,
+                status=SessionStatus.COMPLETED.value,
+            ).count() > 0
+
+            if not has_completed_session:
+                return CreateReviewMutation(
+                    success=False,
+                    errors=["You can only review a mentor after completing a session with them."]
+                )
+
+            review = Review.objects.create(
+                mentor=mentor,
+                mentee=user,
+                remark=remark,
+                score=score,
             )
-
-        review = Review.objects.create(
-            mentor=mentor,
-            mentee=user,
-            remark=remark,
-            score=score,
-        )
-        return CreateReviewMutation(review=review, success=True, errors=[])
+            return CreateReviewMutation(review=review, success=True, errors=[])
+        except Exception as e:
+            import traceback
+            print(f"CreateReviewMutation error: {str(e)}")
+            traceback.print_exc()
+            return CreateReviewMutation(success=False, errors=[f"Error creating review: {str(e)}"])
 
 
 class HideReviewMutation(graphene.Mutation):
