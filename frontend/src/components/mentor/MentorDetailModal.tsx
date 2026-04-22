@@ -142,7 +142,7 @@ export const MentorDetailModal = ({
                     }}
                   >
                     {mentor.occupation && (
-                      <Stack direction="row" spacing={1} alignItems="center">
+                      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                         <Briefcase
                           size={16}
                           color={theme.palette.text.secondary}
@@ -154,7 +154,7 @@ export const MentorDetailModal = ({
                     )}
 
                     {mentor.expertise && (
-                      <Stack direction="row" spacing={1} alignItems="center">
+                      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                         <GraduationCap
                           size={16}
                           color={theme.palette.text.secondary}
@@ -166,7 +166,7 @@ export const MentorDetailModal = ({
                     )}
 
                     {mentor.address && (
-                      <Stack direction="row" spacing={1} alignItems="center">
+                      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                         <MapPin
                           size={16}
                           color={theme.palette.text.secondary}
@@ -178,7 +178,7 @@ export const MentorDetailModal = ({
                     )}
 
                     {mentorReviews.length > 0 && (
-                      <Stack direction="row" spacing={1} alignItems="center">
+                      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                         <Star size={16} color="#f59e0b" />
                         <Typography sx={{ fontSize: "0.875rem" }}>
                           {avgScore.toFixed(1)} ({mentorReviews.length} review
@@ -272,7 +272,7 @@ export const MentorDetailModal = ({
                           <Stack
                             direction="row"
                             spacing={1}
-                            alignItems="center"
+                            sx={{ alignItems: "center" }}
                           >
                             <Typography
                               sx={{
@@ -285,7 +285,7 @@ export const MentorDetailModal = ({
                             <Stack
                               direction="row"
                               spacing={0.25}
-                              alignItems="center"
+                              sx={{ alignItems: "center" }}
                             >
                               {Array.from({ length: 5 }).map((_, i) => (
                                 <Star

@@ -215,7 +215,7 @@ const MentorsPage = () => {
                 </Box>
 
                 {mentor.occupation && (
-                  <Stack direction="row" spacing={1} alignItems="center">
+                  <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                     <Briefcase
                       size={16}
                       color={theme.palette.text.secondary}
@@ -230,8 +230,7 @@ const MentorsPage = () => {
                   <Stack
                     direction="row"
                     spacing={1}
-                    alignItems="center"
-                    sx={{ color: "text.secondary" }}
+                    sx={{ color: "text.secondary", alignItems: "center" }}
                   >
                     <MapPin size={16} />
                     <Typography sx={{ fontSize: "0.875rem" }}>

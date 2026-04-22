@@ -141,7 +141,7 @@ const UserDashboardPage = () => {
           <Card>
             <CardContent>
               <Stack spacing={2} sx={{ pt: 0.5 }}>
-                <Stack direction="row" spacing={1.5} alignItems="center">
+                <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
                   <Box
                     sx={{
                       width: 48,
@@ -377,8 +377,8 @@ const UserDashboardPage = () => {
                                   <Stack
                                     direction="row"
                                     spacing={0.5}
-                                    alignItems="center"
                                     sx={{
+                                      alignItems: "center",
                                       fontSize: "0.75rem",
                                       color: "text.secondary",
                                     }}
@@ -495,7 +495,7 @@ const UserDashboardPage = () => {
                           <Stack
                             direction="row"
                             spacing={1}
-                            alignItems="center"
+                            sx={{ alignItems: "center" }}
                           >
                             <Typography
                               sx={{ fontSize: "0.875rem", fontWeight: 500 }}
@@ -505,7 +505,7 @@ const UserDashboardPage = () => {
                             <Stack
                               direction="row"
                               spacing={0.25}
-                              alignItems="center"
+                              sx={{ alignItems: "center" }}
                             >
                               {Array.from({ length: 5 }).map((_, i) => (
                                 <Star

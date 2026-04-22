@@ -194,7 +194,7 @@ const AdminDashboardPage = () => {
           <Card>
             <CardContent>
               <Stack spacing={2}>
-                <Stack direction="row" spacing={1.5} alignItems="center">
+                <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
                   <Box
                     sx={{
                       borderRadius: "50%",
@@ -209,7 +209,7 @@ const AdminDashboardPage = () => {
                     <ShieldCheck size={24} color={theme.palette.primary.main} />
                   </Box>
                   <Box>
-                    <Typography variant="subtitle1" fontWeight={600}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                       {user?.firstName} {user?.lastName}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
@@ -280,7 +280,7 @@ const AdminDashboardPage = () => {
         </Box>
 
         <Stack spacing={3}>
-          <Typography variant="h4" fontWeight={700}>
+          <Typography variant="h4" sx={{ fontWeight: 700 }}>
             Admin Dashboard
           </Typography>
 
@@ -294,7 +294,7 @@ const AdminDashboardPage = () => {
                 }}
               >
                 <StatCard
-                  label="Total System Users"
+                  label="Total Users"
                   value={totalUsers}
                   loading={usersLoading}
                   icon={<Users className="h-7 w-7 text-gray-500" />}
@@ -330,7 +330,7 @@ const AdminDashboardPage = () => {
               <Card>
                 <CardContent>
                   <Stack spacing={2}>
-                    <Typography variant="h6" fontWeight={600}>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
                       All Users
                     </Typography>
 
@@ -475,7 +475,7 @@ const AdminDashboardPage = () => {
               <Card>
                 <CardContent>
                   <Stack spacing={2}>
-                    <Typography variant="h6" fontWeight={600}>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
                       {selectedReviewCategory === "all"
                         ? "All Reviews"
                         : selectedReviewCategory === "visible"
@@ -509,13 +509,13 @@ const AdminDashboardPage = () => {
                             }}
                           >
                             <Box sx={{ pr: 12 }}>
-                              <Typography variant="body2" fontWeight={600}>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
                                 {r.mentee.firstName} {r.mentee.lastName}
                                 <Typography
                                   component="span"
                                   variant="body2"
                                   color="text.secondary"
-                                  fontWeight={400}
+                                  sx={{ fontWeight: 400 }}
                                 >
                                   {" "}reviewed Mentor{" "}
                                 </Typography>
@@ -524,8 +524,7 @@ const AdminDashboardPage = () => {
                               <Stack
                                 direction="row"
                                 spacing={0.25}
-                                alignItems="center"
-                                sx={{ mt: 0.25, color: "#d97706" }}
+                                sx={{ mt: 0.25, color: "#d97706", alignItems: "center" }}
                               >
                                 {Array.from({ length: 5 }).map((_, i) => (
                                   <Star

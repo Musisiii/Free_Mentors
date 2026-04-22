@@ -24,7 +24,7 @@ const NotFound = () => {
         bgcolor: "background.default",
       }}
     >
-      <Stack spacing={3} alignItems="center" sx={{ textAlign: "center", maxWidth: 480 }}>
+      <Stack spacing={3} sx={{ textAlign: "center", maxWidth: 480,  alignItems:"center" }}>
         <Box
           sx={{
             width: 72,
@@ -51,7 +51,7 @@ const NotFound = () => {
           404
         </Typography>
 
-        <Typography variant="h5" fontWeight={600}>
+        <Typography variant="h5" sx={{ fontWeight: 600 }}>
           Page not found
         </Typography>
 
