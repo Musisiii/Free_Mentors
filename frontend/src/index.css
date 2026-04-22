@@ -7,6 +7,15 @@ All colors MUST be HSL.
 */
 
 @layer base {
+  * {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+
+  *::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, and Opera */
+  }
+
   :root {
     --background: 0 0% 100%;
     --foreground: 0 0% 10%;

@@ -1,4 +1,4 @@
-import { Link, NavLink, useNavigate, Outlet } from "react-router-dom";
+import { Link, useNavigate, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ui/theme-toggle";
 import { useAuthStore } from "@/stores/authStore";
@@ -12,7 +12,7 @@ export const MainLayout = () => {
 
   const handleLogout = () => {
     clearAuth();
-    toast({ title: "Logged out", description: `See you next time ${user?.firstName}!` });
+    toast({ title: `See you next time ${user?.firstName} ${user?.lastName}!` });
     navigate("/login");
   };
 
@@ -53,10 +53,12 @@ export const MainLayout = () => {
         <Outlet />
       </main>
 
-      <footer className="border-t py-3 text-center">
-        <p className="text-sm text-muted-foreground">
-          © 2026 Free Mentors. Connecting learners with experienced mentors.
-        </p>
+      <footer className="sticky bottom-0 z-50 w-full border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="py-3 text-center">
+          <p className="text-sm text-muted-foreground">
+            © 2026 Free Mentors. Connecting learners with experienced mentors.
+          </p>
+        </div>
       </footer>
     </div>
   );

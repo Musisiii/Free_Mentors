@@ -13,11 +13,12 @@ import { SessionRequestModal } from "@/components/sessions/SessionRequestModal";
 
 interface MentorDetailModalProps {
   mentor: User | null;
+  isComplete?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export const MentorDetailModal = ({ mentor, open, onOpenChange }: MentorDetailModalProps) => {
+export const MentorDetailModal = ({ mentor, isComplete, open, onOpenChange }: MentorDetailModalProps) => {
   const { user } = useAuthStore();
   const [requestOpen, setRequestOpen] = useState(false);
 

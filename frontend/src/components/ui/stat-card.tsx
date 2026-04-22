@@ -25,10 +25,10 @@ export const StatCard = ({
         : "hover:bg-secondary/60"
       }
       ${label === "Total" && "text-foreground/50"}
-      ${label === "Pending" && "text-yellow-700"}
+      ${label === "Pending" && "text-yellow-900"}
       ${label === "Accepted" && "text-primary"}
-      ${label === "Rejected" && "text-red-700"}
-      ${label === "Completed" && "text-blue-700"}
+      ${label === "Rejected" && "text-red-900"}
+      ${label === "Completed" && "text-blue-900"}
       ${loading ? "pointer-events-none opacity-70" : ""}
     `}
     onClick={onClick}
