@@ -1,65 +1,111 @@
-import { Link, useNavigate, Outlet } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import ThemeToggle from "@/components/ui/theme-toggle";
-import { useAuthStore } from "@/stores/authStore";
-import { GraduationCap, LogOut } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Link as RouterLink, Outlet } from "react-router-dom";
+import {
+  AppBar,
+  Box,
+  Container,
+  Stack,
+  Toolbar,
+  Typography,
+  useTheme,
+} from "@mui/material";
+import { GraduationCap } from "lucide-react";
 
 export const MainLayout = () => {
-  const { isAuthenticated, user, clearAuth } = useAuthStore();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-
-  const handleLogout = () => {
-    clearAuth();
-    toast({ title: `See you next time ${user?.firstName} ${user?.lastName}!` });
-    navigate("/login");
-  };
-
-  const dashboardPath =
-    user?.role === "ADMIN"
-      ? "/dashboard/admin"
-      : user?.role === "MENTOR"
-        ? "/dashboard/mentor"
-        : "/dashboard/user";
+  const theme = useTheme();
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="p-2 bg-primary rounded-lg">
-              <GraduationCap className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-xl">Free Mentors</span>
-          </Link>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+      }}
+    >
+      <AppBar
+        position="sticky"
+        elevation={0}
+        sx={{
+          top: 0,
+          bgcolor: "background.default",
+          color: "text.primary",
+          borderBottom: 1,
+          borderColor: "divider",
+          backdropFilter: "blur(8px)",
+          backgroundImage: "none",
+        }}
+      >
+        <Container maxWidth="lg" disableGutters>
+          <Toolbar
+            sx={{
+              minHeight: 64,
+              px: { xs: 2, sm: 3 },
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
+            <Stack
+              component={RouterLink}
+              to="/"
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              sx={{ textDecoration: "none", color: "inherit" }}
+            >
+              <Box
+                sx={{
+                  width: 36,
+                  height: 36,
+                  bgcolor: "primary.main",
+                  borderRadius: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <GraduationCap
+                  size={20}
+                  color={theme.palette.primary.contrastText}
+                />
+              </Box>
+              <Typography
+                variant="h6"
+                fontWeight={700}
+                sx={{ lineHeight: 1, display: "flex", alignItems: "center" }}
+              >
+                Free Mentors
+              </Typography>
+            </Stack>
+          </Toolbar>
+        </Container>
+      </AppBar>
 
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            {isAuthenticated ? (
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" /><span className="hidden sm:inline">Logout</span>
-              </Button>
-            ) : (
-              <Button variant="outline" asChild>
-                <Link to="/login">Login</Link>
-              </Button>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1">
+      <Box component="main" sx={{ flex: 1 }}>
         <Outlet />
-      </main>
+      </Box>
 
-      <footer className="sticky bottom-0 z-50 w-full border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="py-3 text-center">
-          <p className="text-sm text-muted-foreground">
-            © 2026 Free Mentors. Connecting learners with experienced mentors.
-          </p>
-        </div>
-      </footer>
-    </div>
+      <Box
+        component="footer"
+        sx={{
+          position: "sticky",
+          bottom: 0,
+          zIndex: 50,
+          width: "100%",
+          borderTop: 1,
+          borderColor: "divider",
+          bgcolor: "background.default",
+          backdropFilter: "blur(8px)",
+          py: 1.5,
+          textAlign: "center",
+        }}
+      >
+        <Typography
+          variant="body2"
+          sx={{ color: "text.secondary", opacity: 0.6 }}
+        >
+          © 2026 Free Mentors. Connecting learners with experienced mentors.
+        </Typography>
+      </Box>
+    </Box>
   );
 };

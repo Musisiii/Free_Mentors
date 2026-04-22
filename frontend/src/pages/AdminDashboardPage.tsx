@@ -1,28 +1,74 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gql } from "@/lib/graphql";
-import { ALL_USERS_QUERY, ALL_REVIEWS_QUERY, TOGGLE_MENTOR_STATUS_MUTATION, HIDE_REVIEW_MUTATION } from "@/lib/queries";
+import {
+  ALL_USERS_QUERY,
+  ALL_REVIEWS_QUERY,
+  TOGGLE_MENTOR_STATUS_MUTATION,
+  HIDE_REVIEW_MUTATION,
+} from "@/lib/queries";
 import { useAuthStore } from "@/stores/authStore";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Container,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import { useToast } from "@/hooks/use-toast";
-import { Users, GraduationCap, ShieldCheck, Star, Loader2, Eye, EyeOff, ArrowUp, ArrowDown, PenLine } from "lucide-react";
-import { Review, User } from "@/types";
 import { StatCard } from "@/components/ui/stat-card";
+import {
+  Users,
+  GraduationCap,
+  ShieldCheck,
+  Star,
+  Eye,
+  EyeOff,
+  ArrowUp,
+  ArrowDown,
+  PenLine,
+  LogOut,
+} from "lucide-react";
+import { Review, User } from "@/types";
 
 type Tab = "users" | "reviews";
 type UserCategory = "all" | "mentees" | "mentors" | "admins";
 type ReviewCategory = "all" | "visible" | "hidden";
 
+const roleChipSx: Record<string, any> = {
+  USER: { bgcolor: "rgba(113, 63, 18, 0.5)", color: "#facc15" },
+  MENTOR: { bgcolor: "rgba(58, 88, 65, 0.2)", color: "primary.main" },
+  ADMIN: { bgcolor: "rgba(30, 58, 138, 0.5)", color: "#60a5fa" },
+};
+
 const AdminDashboardPage = () => {
-  const { user } = useAuthStore();
+  const { user, clearAuth } = useAuthStore();
+  const navigate = useNavigate();
   const { toast } = useToast();
+  const handleLogout = () => {
+    clearAuth();
+    toast({ title: `See you next time ${user?.firstName} ${user?.lastName}!` });
+    navigate("/login");
+  };
   const queryClient = useQueryClient();
+  const theme = useTheme();
   const [tab, setTab] = useState<Tab>("users");
-  const [selectedUserCategory, setSelectedUserCategory] = useState<UserCategory>("all");
-  const [selectedReviewCategory, setSelectedReviewCategory] = useState<ReviewCategory>("all");
+  const [selectedUserCategory, setSelectedUserCategory] =
+    useState<UserCategory>("all");
+  const [selectedReviewCategory, setSelectedReviewCategory] =
+    useState<ReviewCategory>("all");
 
   const { data: users, isLoading: usersLoading } = useQuery({
     queryKey: ["all-users"],
@@ -46,7 +92,9 @@ const AdminDashboardPage = () => {
         toggleMentorStatus: { success: boolean; errors: string[] | null };
       }>(TOGGLE_MENTOR_STATUS_MUTATION, { userId });
       if (!res.toggleMentorStatus.success) {
-        throw new Error(res.toggleMentorStatus.errors?.[0] || "Failed to update role");
+        throw new Error(
+          res.toggleMentorStatus.errors?.[0] || "Failed to update role",
+        );
       }
     },
     onSuccess: () => {
@@ -55,15 +103,18 @@ const AdminDashboardPage = () => {
       queryClient.invalidateQueries({ queryKey: ["all-mentors"] });
     },
     onError: (err: any) =>
-      toast({ title: "Update failed", description: err.message, variant: "destructive" }),
+      toast({
+        title: "Update failed",
+        description: err.message,
+        variant: "destructive",
+      }),
   });
 
   const hideReview = useMutation({
     mutationFn: async (reviewId: string) => {
-      const res = await gql<{ hideReview: { success: boolean; errors: string[] | null } }>(
-        HIDE_REVIEW_MUTATION,
-        { reviewId },
-      );
+      const res = await gql<{
+        hideReview: { success: boolean; errors: string[] | null };
+      }>(HIDE_REVIEW_MUTATION, { reviewId });
       if (!res.hideReview.success) {
         throw new Error(res.hideReview.errors?.[0] || "Failed");
       }
@@ -74,7 +125,11 @@ const AdminDashboardPage = () => {
       queryClient.invalidateQueries({ queryKey: ["all-reviews"] });
     },
     onError: (err: any) =>
-      toast({ title: "Failed", description: err.message, variant: "destructive" }),
+      toast({
+        title: "Failed",
+        description: err.message,
+        variant: "destructive",
+      }),
   });
 
   const totalUsers = users?.length ?? 0;
@@ -91,7 +146,6 @@ const AdminDashboardPage = () => {
         return users.filter((u) => u.role === "MENTOR");
       case "admins":
         return users.filter((u) => u.role === "ADMIN");
-      case "all":
       default:
         return users;
     }
@@ -106,7 +160,6 @@ const AdminDashboardPage = () => {
         return reviews.filter((r) => !r.isHidden);
       case "hidden":
         return reviews.filter((r) => r.isHidden);
-      case "all":
       default:
         return reviews;
     }
@@ -114,130 +167,271 @@ const AdminDashboardPage = () => {
 
   const filteredReviews = getFilteredReviews();
 
-  return (
-    <div className="container max-w-6xl mx-auto p-4 py-8">
-      <div className="grid lg:grid-cols-[280px,1fr] gap-6 items-start">
-        <aside className="lg:sticky lg:top-40">
-          <Card>
-            <CardContent className="pt-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-full bg-primary/10 p-3">
-                  <ShieldCheck className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <div className="font-semibold">
-                    {user?.firstName} {user?.lastName}
-                  </div>
-                  <div className="text-xs text-muted-foreground">{user?.email}</div>
-                  <Badge variant='admin' className="mt-1">{user?.role}</Badge>
-                </div>
-              </div>
+  const navBtnSx = (active: boolean) => ({
+    justifyContent: "flex-start",
+    width: "100%",
+    color: "text.primary",
+    bgcolor: active ? "secondary.main" : "transparent",
+    "&:hover": {
+      bgcolor: active ? "secondary.main" : "rgba(0,0,0,0.04)",
+    },
+    textTransform: "none",
+    fontWeight: 500,
+    px: 1.5,
+  });
 
-              <div className="space-y-1 pt-2 border-t">
-                <Button variant={tab === "users" ? "secondary" : "ghost"} size="sm" className="w-full justify-start"
-                  onClick={() => setTab("users")}
-                >
-                  <Users className="h-4 w-4 mr-2" /> Users
-                </Button>
-                <Button variant={tab === "reviews" ? "secondary" : "ghost"} size="sm" className="w-full justify-start"
-                  onClick={() => setTab("reviews")}
-                >
-                  <Star className="h-4 w-4 mr-2" /> Reviews
-                </Button>
-                <Link to="/mentors">
-                  <Button variant="ghost" size="sm" className="w-full justify-start">
-                    <GraduationCap className="h-4 w-4 mr-2" /> Mentors
+  return (
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", lg: "280px 1fr" },
+          gap: 3,
+          alignItems: "start",
+        }}
+      >
+        <Box sx={{ position: { lg: "sticky" }, top: { lg: 160 } }}>
+          <Card>
+            <CardContent>
+              <Stack spacing={2}>
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Box
+                    sx={{
+                      borderRadius: "50%",
+                      bgcolor: "rgba(58, 88, 65, 0.1)",
+                      width: 48,
+                      height: 48,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <ShieldCheck size={24} color={theme.palette.primary.main} />
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={600}>
+                      {user?.firstName} {user?.lastName}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {user?.email}
+                    </Typography>
+                    <Box sx={{ mt: 0.5 }}>
+                      <Chip
+                        label={user?.role}
+                        size="small"
+                        sx={{
+                          ...roleChipSx[user?.role || "ADMIN"],
+                          fontWeight: 600,
+                          fontSize: "0.7rem",
+                          height: 20,
+                        }}
+                      />
+                    </Box>
+                  </Box>
+                </Stack>
+
+                <Box sx={{ pt: 1, borderTop: 1, borderColor: "divider" }}>
+                  <Stack spacing={0.5}>
+                    <Button
+                      size="small"
+                      onClick={() => setTab("users")}
+                      sx={navBtnSx(tab === "users")}
+                      startIcon={<Users size={16} />}
+                    >
+                      Users
+                    </Button>
+                    <Button
+                      size="small"
+                      onClick={() => setTab("reviews")}
+                      sx={navBtnSx(tab === "reviews")}
+                      startIcon={<Star size={16} />}
+                    >
+                      Reviews
+                    </Button>
+                    <Button
+                      size="small"
+                      component={RouterLink}
+                      to="/mentors"
+                      sx={navBtnSx(false)}
+                      startIcon={<GraduationCap size={16} />}
+                    >
+                      Mentors
+                    </Button>
+                  </Stack>
+                </Box>
+
+                <Box sx={{ pt: 1, borderTop: 1, borderColor: "divider" }}>
+                  <Button
+                    size="small"
+                    onClick={handleLogout}
+                    startIcon={<LogOut size={16} />}
+                    sx={{
+                      ...navBtnSx(false),
+                      color: "#ef4444",
+                      "&:hover": { bgcolor: "rgba(239, 68, 68, 0.1)" },
+                    }}
+                  >
+                    Logout
                   </Button>
-                </Link>
-              </div>
+                </Box>
+              </Stack>
             </CardContent>
           </Card>
-        </aside>
+        </Box>
 
-        <div className="space-y-6">
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <Stack spacing={3}>
+          <Typography variant="h4" fontWeight={700}>
+            Admin Dashboard
+          </Typography>
 
           {tab === "users" && (
             <>
-              <div className="grid grid-cols-4 gap-4">
-                <StatCard  label="Total System Users"  value={totalUsers} loading={usersLoading}
-                  icon={<Users className="h-7 w-7 text-gray-500" />} 
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(4, 1fr)",
+                  gap: 2,
+                }}
+              >
+                <StatCard
+                  label="Total System Users"
+                  value={totalUsers}
+                  loading={usersLoading}
+                  icon={<Users className="h-7 w-7 text-gray-500" />}
                   isActive={selectedUserCategory === "all"}
                   onClick={() => setSelectedUserCategory("all")}
                 />
-                <StatCard label="Mentees" value={totalMentees} loading={usersLoading}
-                  icon={<PenLine className="h-7 w-7 text-yellow-700" />} 
+                <StatCard
+                  label="Mentees"
+                  value={totalMentees}
+                  loading={usersLoading}
+                  icon={<PenLine className="h-7 w-7 text-yellow-700" />}
                   isActive={selectedUserCategory === "mentees"}
                   onClick={() => setSelectedUserCategory("mentees")}
                 />
-                <StatCard label="Mentors" value={totalMentors} loading={usersLoading}
-                  icon={<GraduationCap className="h-7 w-7 text-primary" />} 
+                <StatCard
+                  label="Mentors"
+                  value={totalMentors}
+                  loading={usersLoading}
+                  icon={<GraduationCap className="h-7 w-7 text-primary" />}
                   isActive={selectedUserCategory === "mentors"}
                   onClick={() => setSelectedUserCategory("mentors")}
                 />
-                <StatCard label="Admins" value={totalAdmins} loading={usersLoading}
-                  icon={<ShieldCheck className="h-7 w-7 text-blue-700" />} 
+                <StatCard
+                  label="Admins"
+                  value={totalAdmins}
+                  loading={usersLoading}
+                  icon={<ShieldCheck className="h-7 w-7 text-blue-700" />}
                   isActive={selectedUserCategory === "admins"}
                   onClick={() => setSelectedUserCategory("admins")}
                 />
-              </div>
+              </Box>
 
               <Card>
-                <CardContent className="pt-6 space-y-4">
-                  <h2 className="text-xl font-semibold">All Users</h2>
+                <CardContent>
+                  <Stack spacing={2}>
+                    <Typography variant="h6" fontWeight={600}>
+                      All Users
+                    </Typography>
 
-                  {usersLoading ? (
-                    <div className="flex justify-center py-10">
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : filteredUsers.length === 0 ? (
-                    <div className="text-center py-10 text-muted-foreground">No users found.</div>
-                  ) : (
-                    <div className="overflow-x-auto border rounded-md">
-                      <table className="w-full text-sm">
-                        <thead className="bg-muted/50">
-                          <tr className="text-center">
-                            <th className="p-3 pl-10 text-start">Name</th>
-                            <th className="p-3 pl-20 text-start">Email</th>
-                            <th className="p-3">Role</th>
-                            {selectedUserCategory !== 'admins' && (<th className="p-3">Action</th>)}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredUsers?.map((u) => (
-                            <tr key={u.id} className="border-t hover:bg-muted/20">
-                              <td className="p-3 font-medium">{u.firstName} {u.lastName}
-                                {u.id === user?.id && (<span className="text-xs text-muted-foreground"> (You)</span>)}
-                              </td>
-                              <td className="p-3 text-muted-foreground">{u.email}</td>
-                              <td className="p-3 text-center">
-                                <Badge variant={ u.role === "ADMIN" ? "admin" : u.role === "MENTOR" ? "default" : "user" }>
-                                  {u.role}
-                                </Badge>
-                              </td>
-                              {selectedUserCategory !== 'admins' && (
-                                <td className="p-3 text-center">
-                                  {u.role !== "ADMIN" ? u.id !== user?.id && u.role === "MENTOR" ? (
-                                    <Button size="sm" variant="outline_user" disabled={toggleMentor.isPending}
-                                      onClick={() => toggleMentor.mutate(u.id)}
-                                    >
-                                      <><ArrowDown className="h-3 w-3 mr-1" />Demote</>
-                                    </Button>
-                                  ) : (
-                                    <Button size="sm" variant="outline" disabled={toggleMentor.isPending}
-                                      onClick={() => toggleMentor.mutate(u.id)}
-                                    >
-                                      <><ArrowUp className="h-3 w-3 mr-1" />Promote</>
-                                    </Button>
-                                  ) : (<></>)}
-                                </td>
+                    {usersLoading ? (
+                      <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
+                        <CircularProgress size={24} />
+                      </Box>
+                    ) : filteredUsers.length === 0 ? (
+                      <Box sx={{ textAlign: "center", py: 5, color: "text.secondary" }}>
+                        No users found.
+                      </Box>
+                    ) : (
+                      <TableContainer
+                        sx={{ border: 1, borderColor: "divider", borderRadius: 1 }}
+                      >
+                        <Table size="small">
+                          <TableHead sx={{ bgcolor: "action.hover" }}>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 600, pl: 5 }}>Name</TableCell>
+                              <TableCell sx={{ fontWeight: 600, pl: 10 }}>Email</TableCell>
+                              <TableCell align="center" sx={{ fontWeight: 600 }}>
+                                Role
+                              </TableCell>
+                              {selectedUserCategory !== "admins" && (
+                                <TableCell align="center" sx={{ fontWeight: 600 }}>
+                                  Action
+                                </TableCell>
                               )}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {filteredUsers.map((u) => (
+                              <TableRow
+                                key={u.id}
+                                sx={{ "&:hover": { bgcolor: "action.hover" } }}
+                              >
+                                <TableCell sx={{ fontWeight: 500 }}>
+                                  {u.firstName} {u.lastName}
+                                  {u.id === user?.id && (
+                                    <Typography
+                                      component="span"
+                                      variant="caption"
+                                      color="text.secondary"
+                                      sx={{ ml: 0.5 }}
+                                    >
+                                      (You)
+                                    </Typography>
+                                  )}
+                                </TableCell>
+                                <TableCell sx={{ color: "text.secondary" }}>
+                                  {u.email}
+                                </TableCell>
+                                <TableCell align="center">
+                                  <Chip
+                                    label={u.role}
+                                    size="small"
+                                    sx={{
+                                      ...roleChipSx[u.role],
+                                      fontWeight: 600,
+                                      fontSize: "0.7rem",
+                                      height: 20,
+                                    }}
+                                  />
+                                </TableCell>
+                                {selectedUserCategory !== "admins" && (
+                                  <TableCell align="center">
+                                    {u.role !== "ADMIN" ? (
+                                      u.role === "MENTOR" ? (
+                                        <Button
+                                          size="small"
+                                          variant="outlined"
+                                          color="warning"
+                                          disabled={toggleMentor.isPending}
+                                          onClick={() => toggleMentor.mutate(u.id)}
+                                          startIcon={<ArrowDown size={12} />}
+                                          sx={{ textTransform: "none", py: 0.25, minHeight: 0 }}
+                                        >
+                                          Demote
+                                        </Button>
+                                      ) : (
+                                        <Button
+                                          size="small"
+                                          variant="outlined"
+                                          disabled={toggleMentor.isPending}
+                                          onClick={() => toggleMentor.mutate(u.id)}
+                                          startIcon={<ArrowUp size={12} />}
+                                          sx={{ textTransform: "none", py: 0.25, minHeight: 0 }}
+                                        >
+                                          Promote
+                                        </Button>
+                                      )
+                                    ) : null}
+                                  </TableCell>
+                                )}
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    )}
+                  </Stack>
                 </CardContent>
               </Card>
             </>
@@ -245,82 +439,156 @@ const AdminDashboardPage = () => {
 
           {tab === "reviews" && (
             <>
-              <div className="grid grid-cols-3 gap-4">
-                <StatCard label="All Reviews" value={reviews?.length ?? 0} loading={reviewsLoading}
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: 2,
+                }}
+              >
+                <StatCard
+                  label="All Reviews"
+                  value={reviews?.length ?? 0}
+                  loading={reviewsLoading}
                   icon={<Star className="h-7 w-7 text-amber-600" />}
                   isActive={selectedReviewCategory === "all"}
                   onClick={() => setSelectedReviewCategory("all")}
                 />
-                <StatCard label="Visible Reviews" loading={reviewsLoading}
+                <StatCard
+                  label="Visible Reviews"
+                  loading={reviewsLoading}
                   value={reviews?.filter((r) => !r.isHidden).length ?? 0}
                   icon={<Eye className="h-7 w-7 text-primary" />}
                   isActive={selectedReviewCategory === "visible"}
                   onClick={() => setSelectedReviewCategory("visible")}
                 />
-                <StatCard label="Hidden Reviews" loading={reviewsLoading}
+                <StatCard
+                  label="Hidden Reviews"
+                  loading={reviewsLoading}
                   icon={<EyeOff className="h-7 w-7 text-destructive" />}
                   value={reviews?.filter((r) => r.isHidden).length ?? 0}
                   isActive={selectedReviewCategory === "hidden"}
                   onClick={() => setSelectedReviewCategory("hidden")}
                 />
-              </div>
+              </Box>
 
               <Card>
-                <CardContent className="pt-6 space-y-4">
-                  <h2 className="text-xl font-semibold">
-                    {selectedReviewCategory === "all"
-                      ? "All Reviews" : selectedReviewCategory === "visible"
-                        ? "Visible Reviews" : "Hidden Reviews"
-                    }
-                  </h2>
-                  {reviewsLoading ? (
-                    <div className="flex justify-center py-10">
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : !filteredReviews || filteredReviews.length === 0 ? (
-                    <div className="text-center py-10 text-muted-foreground">
+                <CardContent>
+                  <Stack spacing={2}>
+                    <Typography variant="h6" fontWeight={600}>
                       {selectedReviewCategory === "all"
-                        ? "No reviews yet." : selectedReviewCategory === "hidden"
-                          ? "No hidden reviews." : "No visible reviews."
-                      }
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {filteredReviews.map((r) => (
-                        <div key={r.id} className="border rounded-lg p-4 space-y-2">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <div className="text-sm font-semibold">{r.mentee.firstName} {r.mentee.lastName}
-                                <span className=" text-muted-foreground font-normal"> reviewed Mentor </span>{r.mentor.firstName} {r.mentor.lastName}
-                              </div>
-                              <div className="flex items-center gap-1 text-amber-600 mt-1">
+                        ? "All Reviews"
+                        : selectedReviewCategory === "visible"
+                          ? "Visible Reviews"
+                          : "Hidden Reviews"}
+                    </Typography>
+                    {reviewsLoading ? (
+                      <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
+                        <CircularProgress size={24} />
+                      </Box>
+                    ) : !filteredReviews || filteredReviews.length === 0 ? (
+                      <Box sx={{ textAlign: "center", py: 5, color: "text.secondary" }}>
+                        {selectedReviewCategory === "all"
+                          ? "No reviews yet."
+                          : selectedReviewCategory === "hidden"
+                            ? "No hidden reviews."
+                            : "No visible reviews."}
+                      </Box>
+                    ) : (
+                      <Stack spacing={2.5}>
+                        {filteredReviews.map((r) => (
+                          <Box
+                            key={r.id}
+                            sx={{
+                              position: "relative",
+                              border: 1,
+                              borderColor: "divider",
+                              borderRadius: 1,
+                              px: 2,
+                              py: 1,
+                            }}
+                          >
+                            <Box sx={{ pr: 12 }}>
+                              <Typography variant="body2" fontWeight={600}>
+                                {r.mentee.firstName} {r.mentee.lastName}
+                                <Typography
+                                  component="span"
+                                  variant="body2"
+                                  color="text.secondary"
+                                  fontWeight={400}
+                                >
+                                  {" "}reviewed Mentor{" "}
+                                </Typography>
+                                {r.mentor.firstName} {r.mentor.lastName}
+                              </Typography>
+                              <Stack
+                                direction="row"
+                                spacing={0.25}
+                                alignItems="center"
+                                sx={{ mt: 0.25, color: "#d97706" }}
+                              >
                                 {Array.from({ length: 5 }).map((_, i) => (
-                                  <Star key={i} className={`h-3 w-3 ${i < r.score ? "fill-current" : "text-gray-300"}`} />
+                                  <Star
+                                    key={i}
+                                    size={12}
+                                    fill={i < r.score ? "currentColor" : "none"}
+                                    color={i < r.score ? "currentColor" : "#d1d5db"}
+                                  />
                                 ))}
-                              </div>
-                            </div>
+                              </Stack>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mt: 0.5 }}
+                              >
+                                {r.remark}
+                              </Typography>
+                            </Box>
+                            <Box
+                              sx={{
+                                position: "absolute",
+                                top: "50%",
+                                right: 16,
+                                transform: "translateY(-50%)",
+                              }}
+                            >
                               {r.isHidden ? (
-                                <Button size="sm" variant="outline_destructive" disabled={hideReview.isPending} onClick={() => hideReview.mutate(r.id)}>
-                                    <Eye className="h-3 w-3 mr-1" /> Unhide
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  color="error"
+                                  disabled={hideReview.isPending}
+                                  onClick={() => hideReview.mutate(r.id)}
+                                  startIcon={<Eye size={12} />}
+                                  sx={{ textTransform: "none", py: 0.25, minHeight: 0 }}
+                                >
+                                  Unhide
                                 </Button>
                               ) : (
-                                <Button size="sm" variant="outline" disabled={hideReview.isPending} onClick={() => hideReview.mutate(r.id)}>
-                                  <EyeOff className="h-3 w-3 mr-1" /> Hide
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  disabled={hideReview.isPending}
+                                  onClick={() => hideReview.mutate(r.id)}
+                                  startIcon={<EyeOff size={12} />}
+                                  sx={{ textTransform: "none", py: 0.25, minHeight: 0 }}
+                                >
+                                  Hide
                                 </Button>
                               )}
-                          </div>
-                          <p className="text-sm text-muted-foreground">{r.remark}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                            </Box>
+                          </Box>
+                        ))}
+                      </Stack>
+                    )}
+                  </Stack>
                 </CardContent>
               </Card>
             </>
           )}
-        </div>
-      </div>
-    </div>
+        </Stack>
+      </Box>
+    </Container>
   );
 };
 

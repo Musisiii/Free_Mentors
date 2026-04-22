@@ -2,11 +2,27 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { gql } from "@/lib/graphql";
 import { ALL_REVIEWS_QUERY } from "@/lib/queries";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Briefcase, GraduationCap, MapPin, MessageSquarePlus, PenLine, Star } from "lucide-react";
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Stack,
+  Typography,
+  useTheme,
+} from "@mui/material";
+import {
+  Briefcase,
+  GraduationCap,
+  MapPin,
+  MessageSquarePlus,
+  PenLine,
+  Star,
+} from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { Review, User } from "@/types";
 import { SessionRequestModal } from "@/components/sessions/SessionRequestModal";
@@ -19,7 +35,13 @@ interface MentorDetailModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export const MentorDetailModal = ({ mentor, isComplete, open, onOpenChange }: MentorDetailModalProps) => {
+export const MentorDetailModal = ({
+  mentor,
+  isComplete,
+  open,
+  onOpenChange,
+}: MentorDetailModalProps) => {
+  const theme = useTheme();
   const { user } = useAuthStore();
   const [requestOpen, setRequestOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -43,106 +65,273 @@ export const MentorDetailModal = ({ mentor, isComplete, open, onOpenChange }: Me
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between"><span>Mentor Details</span></DialogTitle>
-          </DialogHeader>
+      <Dialog
+        open={open}
+        onClose={() => onOpenChange(false)}
+        maxWidth="md"
+        fullWidth
+        slotProps={{ paper: { sx: { maxHeight: "90vh" } } }}
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            fontSize: "1.125rem",
+            fontWeight: 600,
+          }}
+        >
+          <span>Mentor Details</span>
+        </DialogTitle>
 
-          <div className="space-y-6">
-            {isSelf && (<p className="text-sm text-muted-foreground italic">This is your own mentor profile.</p>)}
+        <DialogContent dividers>
+          <Stack spacing={3}>
+            {isSelf && (
+              <Typography
+                sx={{
+                  fontSize: "0.875rem",
+                  color: "text.secondary",
+                  fontStyle: "italic",
+                }}
+              >
+                This is your own mentor profile.
+              </Typography>
+            )}
+
             <Card>
-              <CardContent className="pt-6 space-y-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h1 className="text-2xl font-bold">{mentor.firstName} {mentor.lastName}</h1>
-                    <p className="text-muted-foreground">{mentor.email}</p>
-                  </div>
-                  <Badge>MENTOR</Badge>
-                </div>
+              <CardContent>
+                <Stack spacing={2} sx={{ pt: 0.5 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      justifyContent: "space-between",
+                      gap: 2,
+                    }}
+                  >
+                    <Box>
+                      <Typography
+                        component="h1"
+                        sx={{ fontSize: "1.5rem", fontWeight: 700 }}
+                      >
+                        {mentor.firstName} {mentor.lastName}
+                      </Typography>
+                      <Typography sx={{ color: "text.secondary" }}>
+                        {mentor.email}
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label="MENTOR"
+                      size="small"
+                      sx={{
+                        height: 22,
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        bgcolor: "rgba(58, 88, 65, 0.2)",
+                        color: "primary.main",
+                      }}
+                    />
+                  </Box>
 
-                <div className="grid md:grid-cols-2 gap-4 text-sm">
-                  {mentor.occupation && (
-                    <div className="flex items-center gap-2">
-                      <Briefcase className="h-4 w-4 text-muted-foreground" /><span>{mentor.occupation}</span>
-                    </div>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gap: 2,
+                      gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)" },
+                      fontSize: "0.875rem",
+                    }}
+                  >
+                    {mentor.occupation && (
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Briefcase
+                          size={16}
+                          color={theme.palette.text.secondary}
+                        />
+                        <Typography sx={{ fontSize: "0.875rem" }}>
+                          {mentor.occupation}
+                        </Typography>
+                      </Stack>
+                    )}
+
+                    {mentor.expertise && (
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <GraduationCap
+                          size={16}
+                          color={theme.palette.text.secondary}
+                        />
+                        <Typography sx={{ fontSize: "0.875rem" }}>
+                          {mentor.expertise}
+                        </Typography>
+                      </Stack>
+                    )}
+
+                    {mentor.address && (
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <MapPin
+                          size={16}
+                          color={theme.palette.text.secondary}
+                        />
+                        <Typography sx={{ fontSize: "0.875rem" }}>
+                          {mentor.address}
+                        </Typography>
+                      </Stack>
+                    )}
+
+                    {mentorReviews.length > 0 && (
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Star size={16} color="#f59e0b" />
+                        <Typography sx={{ fontSize: "0.875rem" }}>
+                          {avgScore.toFixed(1)} ({mentorReviews.length} review
+                          {mentorReviews.length === 1 ? "" : "s"})
+                        </Typography>
+                      </Stack>
+                    )}
+                  </Box>
+
+                  {mentor.bio && (
+                    <Box>
+                      <Typography
+                        component="h2"
+                        sx={{ fontWeight: 600, mb: 0.5 }}
+                      >
+                        About
+                      </Typography>
+                      <Typography
+                        sx={{
+                          color: "text.secondary",
+                          whiteSpace: "pre-line",
+                        }}
+                      >
+                        {mentor.bio}
+                      </Typography>
+                    </Box>
                   )}
 
-                  {mentor.expertise && (
-                    <div className="flex items-center gap-2">
-                      <GraduationCap className="h-4 w-4 text-muted-foreground" /><span>{mentor.expertise}</span>
-                    </div>
+                  {!isSelf && user?.role === "USER" && (
+                    <Box>
+                      <Button
+                        variant="contained"
+                        onClick={() => setRequestOpen(true)}
+                        startIcon={<MessageSquarePlus size={16} />}
+                        sx={{ width: { xs: "100%", md: "auto" } }}
+                      >
+                        Request Mentorship Session
+                      </Button>
+                    </Box>
                   )}
-
-                  {mentor.address && (
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span>{mentor.address}</span>
-                    </div>
-                  )}
-
-                  {mentorReviews.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <Star className="h-4 w-4 text-amber-500" />
-                      <span>
-                        {avgScore.toFixed(1)} ({mentorReviews.length} review{mentorReviews.length === 1 ? "" : "s"})
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {mentor.bio && (
-                  <div>
-                    <h2 className="font-semibold mb-1">About</h2>
-                    <p className="text-muted-foreground whitespace-pre-line">{mentor.bio}</p>
-                  </div>
-                )}
-
-                {!isSelf && user?.role === "USER" && (
-                  <Button onClick={() => setRequestOpen(true)} className="w-full md:w-auto">
-                    <MessageSquarePlus className="h-4 w-4 mr-2" />Request Mentorship Session
-                  </Button>
-                )}
+                </Stack>
               </CardContent>
             </Card>
 
             <Card>
-              <CardContent className="pt-6 space-y-4">
-                <div className="flex items-start justify-between">
-                  <h2 className="font-semibold text-lg">Reviews</h2>
-                  {isComplete && <Button variant="outline" size="sm" onClick={() => setReviewOpen(true)}>
-                    <PenLine className="h-4 w-4 mr-1" />Leave a Review
-                  </Button>}
-                </div>
-                {mentorReviews.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No reviews yet.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {mentorReviews.map((r) => (
-                      <div key={r.id} className="border-l-2 border-primary/40 pl-3">
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="font-medium">{r.mentee.firstName} {r.mentee.lastName}</span>
-                          <span className="flex items-center gap-1 text-amber-600">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                              <Star key={i} className={`h-3 w-3 ${i < r.score ? "fill-current" : "text-gray-300"}`} />
-                            ))}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">{r.remark}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
+              <CardContent>
+                <Stack spacing={2} sx={{ pt: 0.5 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      justifyContent: "space-between",
+                      gap: 2,
+                    }}
+                  >
+                    <Typography
+                      component="h2"
+                      sx={{ fontWeight: 600, fontSize: "1.125rem" }}
+                    >
+                      Reviews
+                    </Typography>
+                    {isComplete && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => setReviewOpen(true)}
+                        startIcon={<PenLine size={14} />}
+                      >
+                        Leave a Review
+                      </Button>
+                    )}
+                  </Box>
+
+                  {mentorReviews.length === 0 ? (
+                    <Typography
+                      sx={{ fontSize: "0.875rem", color: "text.secondary" }}
+                    >
+                      No reviews yet.
+                    </Typography>
+                  ) : (
+                    <Stack spacing={2.5}>
+                      {mentorReviews.map((r) => (
+                        <Box
+                          key={r.id}
+                          sx={{
+                            borderLeft: 2,
+                            borderColor: "rgba(58, 88, 65, 0.4)",
+                            pl: 1.5,
+                          }}
+                        >
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            alignItems="center"
+                          >
+                            <Typography
+                              sx={{
+                                fontSize: "0.875rem",
+                                fontWeight: 500,
+                              }}
+                            >
+                              {r.mentee.firstName} {r.mentee.lastName}
+                            </Typography>
+                            <Stack
+                              direction="row"
+                              spacing={0.25}
+                              alignItems="center"
+                            >
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <Star
+                                  key={i}
+                                  size={12}
+                                  color="#d97706"
+                                  fill={i < r.score ? "#d97706" : "none"}
+                                  style={{
+                                    color: i < r.score ? "#d97706" : "#d1d5db",
+                                  }}
+                                />
+                              ))}
+                            </Stack>
+                          </Stack>
+                          <Typography
+                            sx={{
+                              fontSize: "0.875rem",
+                              color: "text.secondary",
+                              mt: 0.5,
+                            }}
+                          >
+                            {r.remark}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Stack>
+                  )}
+                </Stack>
               </CardContent>
             </Card>
-          </div>
+          </Stack>
         </DialogContent>
       </Dialog>
 
-      <SessionRequestModal open={requestOpen} onOpenChange={setRequestOpen} mentor={mentor} />
+      <SessionRequestModal
+        open={requestOpen}
+        onOpenChange={setRequestOpen}
+        mentor={mentor}
+      />
 
       {isComplete && (
-        <ReviewModal open={reviewOpen} onOpenChange={setReviewOpen} mentor={mentor} />
+        <ReviewModal
+          open={reviewOpen}
+          onOpenChange={setReviewOpen}
+          mentor={mentor}
+        />
       )}
     </>
   );

@@ -1,16 +1,28 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { gql } from "@/lib/graphql";
 import { LOGIN_MUTATION } from "@/lib/queries";
 import { useAuthStore } from "@/stores/authStore";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, GraduationCap } from "lucide-react";
-import { PasswordInput } from "@/components/ui/password-input";
+import { GraduationCap } from "lucide-react";
 import { User } from "@/types";
+
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CircularProgress,
+  IconButton,
+  InputAdornment,
+  Link,
+  Stack,
+  TextField,
+  Typography,
+  useTheme,
+} from "@mui/material";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
 interface LoginResponse {
   login: {
@@ -22,8 +34,10 @@ interface LoginResponse {
 }
 
 const LoginPage = () => {
+  const theme = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
@@ -40,7 +54,10 @@ const LoginPage = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const data = await gql<LoginResponse>(LOGIN_MUTATION, { email: email.trim(), password });
+      const data = await gql<LoginResponse>(LOGIN_MUTATION, {
+        email: email.trim(),
+        password,
+      });
       const result = data.login;
       if (!result.success || !result.token || !result.user) {
         toast({
@@ -77,62 +94,241 @@ const LoginPage = () => {
   };
 
   return (
-    <div
+    <Box
       className="min-h-[calc(100vh-7rem)] flex items-center justify-center p-4 relative auth-bg"
-        style={{ backgroundImage: `url('/images/pic4.png')` }}
+      sx={{ backgroundImage: `url('/images/pic4.png')` }}
     >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-      <Card className="w-full max-w-md relative z-10">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <div className="p-3 bg-primary rounded-lg">
-              <GraduationCap className="h-8 w-8 text-primary-foreground" />
-            </div>
-          </div>
-          <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
-          <CardDescription className="text-center">Enter your email to access your account</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="your@email.com" value={email} required
-                onChange={(e) => setEmail(e.target.value)}
+      <Box
+        sx={{
+          position: "absolute",
+          inset: 0,
+          bgcolor: "rgba(0,0,0,0.5)",
+          backdropFilter: "blur(4px)",
+        }}
+      />
+      <Card
+        sx={{
+          width: "100%",
+          maxWidth: 448,
+          position: "relative",
+          zIndex: 10,
+        }}
+      >
+        {/* Header — matches shadcn CardHeader: p-6, space-y-1.5 */}
+        <Box sx={{ p: 3, pb: 0 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              mb: 2,
+            }}
+          >
+            <Box
+              sx={{
+                p: 1.5,
+                bgcolor: "primary.main",
+                borderRadius: 1.5,
+                display: "inline-flex",
+                lineHeight: 0,
+              }}
+            >
+              <GraduationCap
+                size={32}
+                color={theme.palette.primary.contrastText}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <PasswordInput id="password" placeholder="••••••••" value={password} required
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            <div className="text-xs text-center text-foreground/80 space-y-1 mt-2 border-t pt-3">
-              <p className="font-medium">Test accounts (click to fill):</p>
-              <div className="space-y-0.5">
-                {testAccounts.map((account) => (
-                  <button key={account.email} type="button" className="block mx-auto hover:text-primary"
-                    onClick={() => fillTestAccount(account.email)}
-                  >
-                    <span className="text-muted-foreground">{account.label}:</span>{" "}{account.email}
-                  </button>
-                ))}
-              </div>
-              <p>
-                <span className="text-muted-foreground">Password:</span> {testPassword}
-              </p>
-            </div>
+            </Box>
+          </Box>
+          <Typography
+            component="h3"
+            sx={{
+              fontSize: "1.5rem",
+              fontWeight: 600,
+              lineHeight: 1,
+              letterSpacing: "-0.025em",
+              textAlign: "center",
+            }}
+          >
+            Welcome back
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: "0.875rem",
+              color: "text.secondary",
+              textAlign: "center",
+              mt: 0.75,
+            }}
+          >
+            Enter your email to access your account
+          </Typography>
+        </Box>
+
+        <Box component="form" onSubmit={handleSubmit}>
+          <CardContent>
+            <Stack spacing={2}>
+              <Stack spacing={1}>
+                <Typography
+                  component="label"
+                  htmlFor="email"
+                  sx={{ fontSize: "0.875rem", fontWeight: 500 }}
+                >
+                  Email
+                </Typography>
+                <TextField
+                  id="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  required
+                  fullWidth
+                  size="small"
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </Stack>
+
+              <Stack spacing={1}>
+                <Typography
+                  component="label"
+                  htmlFor="password"
+                  sx={{ fontSize: "0.875rem", fontWeight: 500 }}
+                >
+                  Password
+                </Typography>
+                <TextField
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  required
+                  fullWidth
+                  size="small"
+                  onChange={(e) => setPassword(e.target.value)}
+                  slotProps={{
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowPassword((s) => !s)}
+                            edge="end"
+                            size="small"
+                            aria-label="toggle password visibility"
+                            sx={{ color: "text.secondary" }}
+                          >
+                            {showPassword ? (
+                              <VisibilityOffIcon fontSize="small" />
+                            ) : (
+                              <VisibilityIcon fontSize="small" />
+                            )}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
+                />
+              </Stack>
+
+              {/* Test accounts block — matches original border-t pt-3 */}
+              <Box
+                sx={{
+                  textAlign: "center",
+                  fontSize: "0.75rem",
+                  mt: 1,
+                  pt: 1.5,
+                  borderTop: 1,
+                  borderColor: "divider",
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "0.75rem",
+                    fontWeight: 500,
+                    color: "text.primary",
+                  }}
+                >
+                  Test accounts (click to fill):
+                </Typography>
+                <Stack spacing={0.25} sx={{ mt: 0.5 }}>
+                  {testAccounts.map((account) => (
+                    <Box
+                      key={account.email}
+                      component="button"
+                      type="button"
+                      onClick={() => fillTestAccount(account.email)}
+                      sx={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: 0,
+                        fontSize: "0.75rem",
+                        fontFamily: "inherit",
+                        color: "text.primary",
+                        "&:hover": { color: "primary.main" },
+                      }}
+                    >
+                      <Box
+                        component="span"
+                        sx={{ color: "text.secondary" }}
+                      >
+                        {account.label}:
+                      </Box>{" "}
+                      {account.email}
+                    </Box>
+                  ))}
+                </Stack>
+                <Typography sx={{ fontSize: "0.75rem", mt: 0.5 }}>
+                  <Box component="span" sx={{ color: "text.secondary" }}>
+                    Password:
+                  </Box>{" "}
+                  {testPassword}
+                </Typography>
+              </Box>
+            </Stack>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Sign In
+
+          {/* Footer — matches shadcn CardFooter: p-6 pt-0, flex-col space-y-4 */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              p: 3,
+              pt: 0,
+            }}
+          >
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              disabled={isLoading}
+              startIcon={
+                isLoading ? (
+                  <CircularProgress size={16} color="inherit" />
+                ) : null
+              }
+              sx={{ height: 40 }}
+            >
+              Sign In
             </Button>
-            <p className="text-sm text-center text-muted-foreground">Don't have an account?{" "}
-              <Link to="/register" className="text-primary hover:underline font-medium">Register here</Link>
-            </p>
-          </CardFooter>
-        </form>
+            <Typography
+              sx={{
+                fontSize: "0.875rem",
+                textAlign: "center",
+                color: "text.secondary",
+              }}
+            >
+              Don't have an account?{" "}
+              <Link
+                component={RouterLink}
+                to="/register"
+                sx={{ fontWeight: 500 }}
+              >
+                Register here
+              </Link>
+            </Typography>
+          </Box>
+        </Box>
       </Card>
-    </div>
+    </Box>
   );
 };
 

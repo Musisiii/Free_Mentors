@@ -1,13 +1,21 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { gql } from "@/lib/graphql";
 import { CREATE_SESSION_MUTATION } from "@/lib/queries";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
 import { MentorshipSession, User } from "@/types";
 
 interface Props {
@@ -24,10 +32,16 @@ export function SessionRequestModal({ open, onOpenChange, mentor }: Props) {
   const mutation = useMutation({
     mutationFn: async () => {
       const res = await gql<{
-        createSession: { success: boolean; errors: string[] | null; session: MentorshipSession | null };
+        createSession: {
+          success: boolean;
+          errors: string[] | null;
+          session: MentorshipSession | null;
+        };
       }>(CREATE_SESSION_MUTATION, { mentorId: mentor.id, questions });
       if (!res.createSession.success) {
-        throw new Error(res.createSession.errors?.[0] || "Failed to create session");
+        throw new Error(
+          res.createSession.errors?.[0] || "Failed to create session",
+        );
       }
       return res.createSession.session;
     },
@@ -41,7 +55,11 @@ export function SessionRequestModal({ open, onOpenChange, mentor }: Props) {
       onOpenChange(false);
     },
     onError: (err: any) => {
-      toast({ title: "Could not send request", description: err.message, variant: "destructive" });
+      toast({
+        title: "Could not send request",
+        description: err.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -57,32 +75,62 @@ export function SessionRequestModal({ open, onOpenChange, mentor }: Props) {
     mutation.mutate();
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Request a session with {mentor.firstName} {mentor.lastName}</DialogTitle>
-          <DialogDescription>
-            Briefly describe the topic and any specific questions you'd like to discuss. 
-            The mentor will accept or decline your request based on their availability and expertise.
-          </DialogDescription>
-        </DialogHeader>
+  const handleClose = () => {
+    setQuestions("");
+    onOpenChange(false);
+  };
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="questions">Topic & questions</Label>
-            <Textarea id="questions" rows={5} value={questions} onChange={(e) => setQuestions(e.target.value)} required
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+      <Box component="form" onSubmit={handleSubmit}>
+        <DialogTitle sx={{ fontSize: "1.125rem", fontWeight: 600 }}>
+          Request a session with {mentor.firstName} {mentor.lastName}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2, fontSize: "0.875rem" }}>
+            Briefly describe the topic and any specific questions you'd like to
+            discuss. The mentor will accept or decline your request based on
+            their availability and expertise.
+          </DialogContentText>
+          <Stack spacing={1}>
+            <Typography
+              component="label"
+              htmlFor="questions"
+              sx={{ fontSize: "0.875rem", fontWeight: 500 }}
+            >
+              Topic & questions
+            </Typography>
+            <TextField
+              id="questions"
+              value={questions}
+              onChange={(e) => setQuestions(e.target.value)}
+              required
+              multiline
+              rows={5}
+              fullWidth
+              size="small"
               placeholder="e.g. I'd love guidance on transitioning into backend engineering. What roadmap would you recommend?"
             />
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Send Request
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button type="button" variant="outlined" onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={mutation.isPending}
+            startIcon={
+              mutation.isPending ? (
+                <CircularProgress size={16} color="inherit" />
+              ) : null
+            }
+          >
+            Send Request
+          </Button>
+        </DialogActions>
+      </Box>
     </Dialog>
   );
 }

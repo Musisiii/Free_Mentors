@@ -1,19 +1,31 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { gql } from "@/lib/graphql";
 import { REGISTER_MUTATION, LOGIN_MUTATION } from "@/lib/queries";
 import { useAuthStore } from "@/stores/authStore";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, GraduationCap } from "lucide-react";
-import { PasswordInput } from "@/components/ui/password-input";
+import { GraduationCap } from "lucide-react";
 import { User } from "@/types";
 
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CircularProgress,
+  IconButton,
+  InputAdornment,
+  Link,
+  Stack,
+  TextField,
+  Typography,
+  useTheme,
+} from "@mui/material";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+
 const RegisterPage = () => {
+  const theme = useTheme();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -23,18 +35,26 @@ const RegisterPage = () => {
     occupation: "",
     bio: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
   const { toast } = useToast();
 
-  const update = (k: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setFormData((prev) => ({ ...prev, [k]: e.target.value }));
+  const update =
+    (k: keyof typeof formData) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setFormData((prev) => ({ ...prev, [k]: e.target.value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim() || 
-      !formData.address.trim() || !formData.occupation.trim()) {
+    if (
+      !formData.firstName.trim() ||
+      !formData.lastName.trim() ||
+      !formData.email.trim() ||
+      !formData.address.trim() ||
+      !formData.occupation.trim()
+    ) {
       toast({ title: "Error", description: "Required form data missing", variant: "destructive" });
       return;
     }
@@ -66,9 +86,9 @@ const RegisterPage = () => {
       }
 
       // Auto-login so the user lands on their dashboard.
-      const login = await gql<{ login: { token: string | null; success: boolean; errors: string[] | null; user: User | null } }>(
-        LOGIN_MUTATION, { email: formData.email.trim(), password: formData.password },
-      );
+      const login = await gql<{
+        login: { token: string | null; success: boolean; errors: string[] | null; user: User | null };
+      }>(LOGIN_MUTATION, { email: formData.email.trim(), password: formData.password });
       if (login.login.success && login.login.token && login.login.user) {
         setAuth(login.login.user, login.login.token);
         toast({ title: "Welcome to Free Mentors!", description: "Your account has been created." });
@@ -88,76 +108,259 @@ const RegisterPage = () => {
     }
   };
 
+  // Small placeholder styling for the short-text fields, matching the
+  // previous shadcn placeholder:text-xs treatment.
+  const smallPlaceholder = {
+    "& input::placeholder": { fontSize: "0.75rem", opacity: 1 },
+  } as const;
+
   return (
-    <div
+    <Box
       className="min-h-[calc(100vh-7rem)] flex items-center justify-center p-4 relative auth-bg"
-      style={{ backgroundImage: `url('/images/pic4.png')` }}
+      sx={{ backgroundImage: `url('/images/pic4.png')` }}
     >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-      <Card className="w-full max-w-lg relative z-10 my-6">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <div className="p-3 bg-primary rounded-lg">
-              <GraduationCap className="h-8 w-8 text-primary-foreground" />
-            </div>
-          </div>
-          <CardTitle className="text-2xl text-center">Create an account</CardTitle>
-          <CardDescription className="text-center">Join Free Mentors and connect with experienced professionals</CardDescription>
-        </CardHeader>
+      <Box
+        sx={{
+          position: "absolute",
+          inset: 0,
+          bgcolor: "rgba(0,0,0,0.5)",
+          backdropFilter: "blur(4px)",
+        }}
+      />
+      <Card
+        sx={{
+          width: "100%",
+          maxWidth: 512,
+          position: "relative",
+          zIndex: 10,
+          my: 3,
+        }}
+      >
+        {/* Header */}
+        <Box sx={{ p: 3, pb: 0 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              mb: 2,
+            }}
+          >
+            <Box
+              sx={{
+                p: 1.5,
+                bgcolor: "primary.main",
+                borderRadius: 1.5,
+                display: "inline-flex",
+                lineHeight: 0,
+              }}
+            >
+              <GraduationCap size={32} color={theme.palette.primary.contrastText} />
+            </Box>
+          </Box>
+          <Typography
+            component="h3"
+            sx={{
+              fontSize: "1.5rem",
+              fontWeight: 600,
+              lineHeight: 1,
+              letterSpacing: "-0.025em",
+              textAlign: "center",
+            }}
+          >
+            Create an account
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: "0.875rem",
+              color: "text.secondary",
+              textAlign: "center",
+              mt: 0.75,
+            }}
+          >
+            Join Free Mentors and connect with experienced professionals
+          </Typography>
+        </Box>
 
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input id="firstName" placeholder="John" value={formData.firstName} required onChange={update("firstName")} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input id="lastName" placeholder="Doe" value={formData.lastName} required onChange={update("lastName")} />
-              </div>
-            </div>
+        <Box component="form" onSubmit={handleSubmit}>
+          <CardContent>
+            <Stack spacing={2}>
+              {/* First Name + Last Name */}
+              <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                <Stack spacing={1}>
+                  <Typography
+                    component="label"
+                    htmlFor="firstName"
+                    sx={{ fontSize: "0.875rem", fontWeight: 500 }}
+                  >
+                    First Name
+                  </Typography>
+                  <TextField
+                    id="firstName"
+                    placeholder="John"
+                    value={formData.firstName}
+                    required
+                    fullWidth
+                    size="small"
+                    onChange={update("firstName")}
+                    sx={smallPlaceholder}
+                  />
+                </Stack>
+                <Stack spacing={1}>
+                  <Typography
+                    component="label"
+                    htmlFor="lastName"
+                    sx={{ fontSize: "0.875rem", fontWeight: 500 }}
+                  >
+                    Last Name
+                  </Typography>
+                  <TextField
+                    id="lastName"
+                    placeholder="Doe"
+                    value={formData.lastName}
+                    required
+                    fullWidth
+                    size="small"
+                    onChange={update("lastName")}
+                    sx={smallPlaceholder}
+                  />
+                </Stack>
+              </Box>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="your@email.com" value={formData.email} required onChange={update("email")} />
-            </div>
+              {/* Email */}
+              <Stack spacing={1}>
+                <Typography component="label" htmlFor="email" sx={{ fontSize: "0.875rem", fontWeight: 500 }}>
+                  Email
+                </Typography>
+                <TextField
+                  id="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={formData.email}
+                  required
+                  fullWidth
+                  size="small"
+                  onChange={update("email")}
+                  sx={smallPlaceholder}
+                />
+              </Stack>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <PasswordInput id="password" placeholder="••••••••" value={formData.password} required onChange={update("password")} />
-              <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
-            </div>
+              {/* Password */}
+              <Stack spacing={1}>
+                <Typography component="label" htmlFor="password" sx={{ fontSize: "0.875rem", fontWeight: 500 }}>
+                  Password
+                </Typography>
+                <TextField
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={formData.password}
+                  required
+                  fullWidth
+                  size="small"
+                  onChange={update("password")}
+                  slotProps={{
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowPassword((s) => !s)}
+                            edge="end"
+                            size="small"
+                            aria-label="toggle password visibility"
+                            sx={{ color: "text.secondary" }}
+                          >
+                            {showPassword ? (
+                              <VisibilityOffIcon fontSize="small" />
+                            ) : (
+                              <VisibilityIcon fontSize="small" />
+                            )}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
+                />
+                <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
+                  Minimum 8 characters
+                </Typography>
+              </Stack>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input id="address" placeholder="City - Country" value={formData.address} required onChange={update("address")} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="occupation">Occupation</Label>
-                <Input id="occupation" placeholder="Software Engineer" value={formData.occupation} required onChange={update("occupation")} />
-              </div>
-            </div>
+              {/* Address + Occupation */}
+              <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                <Stack spacing={1}>
+                  <Typography component="label" htmlFor="address" sx={{ fontSize: "0.875rem", fontWeight: 500 }}>
+                    Address
+                  </Typography>
+                  <TextField
+                    id="address"
+                    placeholder="City - Country"
+                    value={formData.address}
+                    required
+                    fullWidth
+                    size="small"
+                    onChange={update("address")}
+                    sx={smallPlaceholder}
+                  />
+                </Stack>
+                <Stack spacing={1}>
+                  <Typography component="label" htmlFor="occupation" sx={{ fontSize: "0.875rem", fontWeight: 500 }}>
+                    Occupation
+                  </Typography>
+                  <TextField
+                    id="occupation"
+                    placeholder="Software Engineer"
+                    value={formData.occupation}
+                    required
+                    fullWidth
+                    size="small"
+                    onChange={update("occupation")}
+                    sx={smallPlaceholder}
+                  />
+                </Stack>
+              </Box>
 
-            <div className="space-y-2">
-              <Label htmlFor="bio">Bio (optional)</Label>
-              <Textarea id="bio" placeholder="Tell us a bit about yourself and what you're looking for in a mentor"
-                value={formData.bio} onChange={update("bio")} rows={3}
-              />
-            </div>
+              {/* Bio */}
+              <Stack spacing={1}>
+                <Typography component="label" htmlFor="bio" sx={{ fontSize: "0.875rem", fontWeight: 500 }}>
+                  Bio (optional)
+                </Typography>
+                <TextField
+                  id="bio"
+                  placeholder="Tell us a bit about yourself and what you're looking for in a mentor"
+                  value={formData.bio}
+                  multiline
+                  rows={3}
+                  fullWidth
+                  size="small"
+                  onChange={update("bio")}
+                />
+              </Stack>
+            </Stack>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Create Account
+
+          {/* Footer */}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, p: 3, pt: 0 }}>
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              disabled={isLoading}
+              startIcon={isLoading ? <CircularProgress size={16} color="inherit" /> : null}
+              sx={{ height: 40 }}
+            >
+              Create Account
             </Button>
-            <p className="text-sm text-center text-muted-foreground">Already have an account?{" "}
-              <Link to="/login" className="text-primary hover:underline font-medium">Sign in</Link>
-            </p>
-          </CardFooter>
-        </form>
+            <Typography sx={{ fontSize: "0.875rem", textAlign: "center", color: "text.secondary" }}>
+              Already have an account?{" "}
+              <Link component={RouterLink} to="/login" sx={{ fontWeight: 500 }}>
+                Sign in
+              </Link>
+            </Typography>
+          </Box>
+        </Box>
       </Card>
-    </div>
+    </Box>
   );
 };
 
