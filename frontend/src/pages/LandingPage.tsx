@@ -106,8 +106,7 @@ const LandingPage = () => {
             <Stack
               direction={{ xs: "column", sm: "row" }}
               spacing={2}
-              justifyContent="center"
-              sx={{ pt: 2 }}
+              sx={{ pt: 2, justifyContent: "center" }}
             >
               <Button
                 size="large"

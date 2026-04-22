@@ -12,8 +12,7 @@ const Field = ({ label, icon, children }: FieldProps) => (
     <Stack
       direction="row"
       spacing={0.5}
-      alignItems="center"
-      sx={{ fontSize: "0.75rem", color: "text.secondary" }}
+      sx={{ fontSize: "0.75rem", color: "text.secondary", alignItems: "center" }}
     >
       {icon}
       <Typography component="span" sx={{ fontSize: "0.75rem" }}>

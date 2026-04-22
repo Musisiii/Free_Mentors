@@ -48,8 +48,7 @@ export const MainLayout = () => {
               to="/"
               direction="row"
               spacing={1}
-              alignItems="center"
-              sx={{ textDecoration: "none", color: "inherit" }}
+              sx={{ textDecoration: "none", color: "inherit", alignItems: "center" }}
             >
               <Box
                 sx={{
@@ -70,8 +69,7 @@ export const MainLayout = () => {
               </Box>
               <Typography
                 variant="h6"
-                fontWeight={700}
-                sx={{ lineHeight: 1, display: "flex", alignItems: "center" }}
+                sx={{ lineHeight: 1, display: "flex", alignItems: "center", fontWeight: 700 }}
               >
                 Free Mentors
               </Typography>
