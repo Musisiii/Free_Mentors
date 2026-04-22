@@ -6,10 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Briefcase, GraduationCap, MapPin, MessageSquarePlus, Star, X } from "lucide-react";
+import { Briefcase, GraduationCap, MapPin, MessageSquarePlus, PenLine, Star } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { Review, User } from "@/types";
 import { SessionRequestModal } from "@/components/sessions/SessionRequestModal";
+import { ReviewModal } from "../sessions/ReviewModal";
 
 interface MentorDetailModalProps {
   mentor: User | null;
@@ -21,6 +22,7 @@ interface MentorDetailModalProps {
 export const MentorDetailModal = ({ mentor, isComplete, open, onOpenChange }: MentorDetailModalProps) => {
   const { user } = useAuthStore();
   const [requestOpen, setRequestOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   const { data: reviews } = useQuery({
     queryKey: ["all-reviews"],
@@ -106,7 +108,12 @@ export const MentorDetailModal = ({ mentor, isComplete, open, onOpenChange }: Me
 
             <Card>
               <CardContent className="pt-6 space-y-4">
-                <h2 className="font-semibold text-lg">Reviews</h2>
+                <div className="flex items-start justify-between">
+                  <h2 className="font-semibold text-lg">Reviews</h2>
+                  {isComplete && <Button variant="outline" size="sm" onClick={() => setReviewOpen(true)}>
+                    <PenLine className="h-4 w-4 mr-1" />Leave a Review
+                  </Button>}
+                </div>
                 {mentorReviews.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No reviews yet.</p>
                 ) : (
@@ -133,6 +140,10 @@ export const MentorDetailModal = ({ mentor, isComplete, open, onOpenChange }: Me
       </Dialog>
 
       <SessionRequestModal open={requestOpen} onOpenChange={setRequestOpen} mentor={mentor} />
+
+      {isComplete && (
+        <ReviewModal open={reviewOpen} onOpenChange={setReviewOpen} mentor={mentor} />
+      )}
     </>
   );
 };

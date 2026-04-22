@@ -12,7 +12,6 @@ import { StatCard } from "@/components/ui/stat-card";
 import { BookOpen, Briefcase, GraduationCap, Loader2, MapPin, User, Star, Binoculars, PenLine } from "lucide-react";
 import { MentorshipSession, User as UserT, Review } from "@/types";
 import { MentorDetailModal } from "@/components/mentor/MentorDetailModal";
-import { ReviewModal } from "@/components/sessions/ReviewModal";
 
 type Tab = "sessions" | "reviews";
 type SessionCategory = "all" | "pending" | "accepted" | "rejected" | "completed";
@@ -21,7 +20,6 @@ const UserDashboardPage = () => {
   const { user } = useAuthStore();
   const [tab, setTab] = useState<Tab>("sessions");
   const [selectedSessionCategory, setSelectedSessionCategory] = useState<SessionCategory>("all");
-  const [reviewSession, setReviewSession] = useState<MentorshipSession | null>(null);
   const [selectedMentor, setSelectedMentor] = useState<UserT | null>(null);
   const [isComplete, setIsComplete] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -188,7 +186,7 @@ const UserDashboardPage = () => {
                             <span>Requested at {new Date(s.createdAt).toLocaleString()}</span>
                             <div className="flex gap-2">
                               <Button size="sm" variant="secondary"
-                                onClick={() => { setSelectedMentor(s.mentor); setIsComplete(true); setModalOpen(true) }}
+                                onClick={() => { setSelectedMentor(s.mentor); if (s.status === "COMPLETED") setIsComplete(true); setModalOpen(true); }}
                               >
                                 View Mentor
                               </Button>
@@ -236,12 +234,8 @@ const UserDashboardPage = () => {
           )}
         </div>
       </div>
-
-      {reviewSession && (
-        <ReviewModal open={!!reviewSession} onOpenChange={(v) => !v && setReviewSession(null)} mentor={reviewSession.mentor} />
-      )}
       
-      <MentorDetailModal mentor={selectedMentor} open={modalOpen} onOpenChange={setModalOpen} />
+      <MentorDetailModal mentor={selectedMentor} isComplete={isComplete} open={modalOpen} onOpenChange={setModalOpen} />
     </div>
   );
 };
