@@ -110,7 +110,7 @@ const UserDashboardPage = () => {
     },
   });
 
-  const userReviews = (reviews ?? []).filter((r) => r.mentee?.id === user?.id);
+  const userReviews = (reviews ?? []).filter((r) => r.mentee?.id === user?.id && r.isHidden === false);
 
   const counts = useMemo(() => {
     const all = sessions ?? [];
@@ -149,8 +149,7 @@ const UserDashboardPage = () => {
     },
   });
 
-  const showPromotionCard =
-    !promotionRequest || promotionRequest.status === "REJECTED";
+  const showPromotionCard = promotionRequest.status !== "PENDING";
 
   return (
     <Container maxWidth="lg" sx={{ p: 2, py: 4 }}>

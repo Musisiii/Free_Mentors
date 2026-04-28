@@ -102,7 +102,7 @@ const MentorDashboardPage = () => {
     },
   });
 
-  const mentorReviews = (reviews ?? []).filter((r) => r.mentor?.id === user?.id);
+  const mentorReviews = (reviews ?? []).filter((r) => r.mentor?.id === user?.id && r.isHidden === false);
   const visibleMentorReviews = mentorReviews.filter((r) => !r.isHidden);
   const avgScore = visibleMentorReviews.length
     ? visibleMentorReviews.reduce((s, r) => s + r.score, 0) /
@@ -153,8 +153,8 @@ const MentorDashboardPage = () => {
     },
     onSuccess: () => {
       toast({
-        title: "Hide request submitted",
-        description: "An admin will review it shortly.",
+        title: "Review Hide Requested",
+        description: "An admin will review your request shortly.",
       });
       queryClient.invalidateQueries({ queryKey: ["all-reviews"] });
     },
@@ -696,117 +696,55 @@ const MentorDashboardPage = () => {
                         <Box
                           key={r.id}
                           sx={{
-                            border: 1,
-                            borderColor: "divider",
-                            borderRadius: 1.5,
-                            p: 2,
+                            borderLeft: 2,
+                            borderColor: "rgba(58, 88, 65, 0.4)",
+                            pl: 1.5,
+                            "&:hover": { bgcolor: "rgba(0,0,0,0.03)" },
                           }}
                         >
-                          <Stack spacing={1}>
-                            <Box
-                              sx={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "flex-start",
-                                flexWrap: "wrap",
-                                gap: 1,
-                              }}
+                          <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              sx={{ alignItems: "center", flexWrap: "wrap" }}
                             >
+                              <Typography
+                                sx={{ fontSize: "0.875rem", fontWeight: 500 }}
+                              >
+                                {r.mentor.firstName} {r.mentor.lastName}
+                              </Typography>
                               <Stack
                                 direction="row"
-                                spacing={1}
-                                sx={{ alignItems: "center", flexWrap: "wrap" }}
+                                spacing={0.25}
+                                sx={{ alignItems: "center" }}
                               >
-                                <Typography
-                                  sx={{ fontSize: "0.875rem", fontWeight: 600 }}
-                                >
-                                  {r.mentee.firstName} {r.mentee.lastName}
-                                </Typography>
-                                <Stack
-                                  direction="row"
-                                  spacing={0.25}
-                                  sx={{ alignItems: "center" }}
-                                >
-                                  {Array.from({ length: 5 }).map((_, i) => (
-                                    <Star
-                                      key={i}
-                                      size={12}
-                                      color={i < r.score ? "#d97706" : "#d1d5db"}
-                                      fill={i < r.score ? "#d97706" : "none"}
-                                    />
-                                  ))}
-                                </Stack>
-                              </Stack>
-                              <Stack
-                                direction="row"
-                                spacing={0.5}
-                                sx={{ alignItems: "center", flexWrap: "wrap" }}
-                              >
-                                {r.isHidden && (
-                                  <Chip
-                                    label="HIDDEN"
-                                    size="small"
-                                    sx={{
-                                      height: 20,
-                                      fontSize: "0.625rem",
-                                      fontWeight: 600,
-                                      ...hideRequestChipSx.APPROVED,
-                                    }}
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    size={12}
+                                    color={i < r.score ? "#d97706" : "#d1d5db"}
+                                    fill={i < r.score ? "#d97706" : "none"}
                                   />
-                                )}
-                                {r.hideRequestStatus &&
-                                  r.hideRequestStatus !== "NONE" && (
-                                    <Chip
-                                      label={`HIDE ${r.hideRequestStatus}`}
-                                      size="small"
-                                      sx={{
-                                        height: 20,
-                                        fontSize: "0.575rem",
-                                        fontWeight: 600,
-                                        ...(hideRequestChipSx[
-                                          r.hideRequestStatus
-                                        ] ?? {}),
-                                      }}
-                                    />
-                                  )}
+                                ))}
                               </Stack>
-                            </Box>
-                            <Typography
-                              sx={{
-                                fontSize: "0.875rem",
-                                color: "text.secondary",
-                              }}
-                            >
-                              {r.remark}
-                            </Typography>
-                            {!r.isHidden &&
-                              (r.hideRequestStatus === "NONE" ||
-                                r.hideRequestStatus === "REJECTED") && (
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    justifyContent: { xs: "center", sm: "flex-end" },
-                                    pt: 0.5,
-                                  }}
-                                >
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    color="error"
-                                    disabled={requestHide.isPending}
-                                    startIcon={<EyeOff size={12} />}
-                                    onClick={() => requestHide.mutate(r.id)}
-                                    sx={{
-                                      textTransform: "none",
-                                      py: 0.25,
-                                      minHeight: 0,
-                                    }}
-                                  >
-                                    Request hide
-                                  </Button>
-                                </Box>
-                              )}
-                          </Stack>
+                            </Stack>
+                            {r.hideRequestStatus === "PENDING" ? (
+                              <Chip label="Requested" color="secondary" size="small" />
+                            ) : (
+                            <Button variant="outlined" color="error" sx={{ py: 0.25 }} onClick={() => requestHide.mutate(r.id)}>
+                              <EyeOff size={15} color='#ef4444' />
+                            </Button>
+                            )}
+                          </Box>
+                          <Typography
+                            sx={{
+                              fontSize: "0.875rem",
+                              color: "text.secondary",
+                              mt: 0.5,
+                            }}
+                          >
+                            {r.remark}
+                          </Typography>
                         </Box>
                       ))}
                     </Stack>
