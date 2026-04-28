@@ -13,14 +13,13 @@ class RegisterMutation(graphene.Mutation):
         last_name = graphene.String(required=True)
         address = graphene.String()
         bio = graphene.String()
-        occupation = graphene.String()
 
     user = graphene.Field(UserType)
     success = graphene.Boolean()
     errors = graphene.List(graphene.String)
 
     def mutate(self, info, email, password, first_name, last_name,
-               address="", bio="", occupation=""):
+               address="", bio=""):
         if CustomUser.objects.filter(email=email).exists():
             return RegisterMutation(
                 success=False,
@@ -33,7 +32,6 @@ class RegisterMutation(graphene.Mutation):
             last_name=last_name,
             address=address,
             bio=bio,
-            occupation=occupation,
             role=RoleChoices.USER,
         )
         return RegisterMutation(user=user, success=True, errors=[])
@@ -92,29 +90,42 @@ class ToggleMentorStatusMutation(graphene.Mutation):
 
 
 class AddAdminMutation(graphene.Mutation):
+    """Create a brand-new admin account from name + email + address.
+    Password is hardcoded to Password123! (per spec)."""
+
     class Arguments:
+        first_name = graphene.String(required=True)
+        last_name = graphene.String(required=True)
         email = graphene.String(required=True)
+        address = graphene.String()
 
     user = graphene.Field(UserType)
     success = graphene.Boolean()
     errors = graphene.List(graphene.String)
 
-    def mutate(self, info, email):
+    def mutate(self, info, first_name, last_name, email, address=""):
         requesting_user = info.context.user
         if not requesting_user.is_authenticated:
             return AddAdminMutation(success=False, errors=["Authentication required."])
         if requesting_user.role != RoleChoices.ADMIN:
             return AddAdminMutation(success=False, errors=["Admin access required."])
 
-        try:
-            target_user = CustomUser.objects.get(email=email)
-        except CustomUser.DoesNotExist:
-            return AddAdminMutation(success=False, errors=["User not found."])
+        if CustomUser.objects.filter(email=email).exists():
+            return AddAdminMutation(
+                success=False,
+                errors=["A user with this email already exists."],
+            )
 
-        target_user.role = RoleChoices.ADMIN
-        target_user.is_staff = True
-        target_user.save()
-        return AddAdminMutation(user=target_user, success=True, errors=[])
+        new_admin = CustomUser.objects.create_user(
+            email=email,
+            password="Password123!",
+            first_name=first_name,
+            last_name=last_name,
+            address=address,
+            role=RoleChoices.ADMIN,
+            is_staff=True,
+        )
+        return AddAdminMutation(user=new_admin, success=True, errors=[])
 
 
 class Query(graphene.ObjectType):
