@@ -1116,7 +1116,7 @@ const AdminDashboardPage = () => {
                                         minHeight: 0,
                                       }}
                                     >
-                                      Reject (keep visible)
+                                      Reject
                                     </Button>
                                     <Button
                                       size="small"
@@ -1135,7 +1135,7 @@ const AdminDashboardPage = () => {
                                         minHeight: 0,
                                       }}
                                     >
-                                      Approve hide
+                                      Hide
                                     </Button>
                                   </Stack>
                                 </Stack>
