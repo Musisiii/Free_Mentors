@@ -7,6 +7,10 @@ import {
   ALL_REVIEWS_QUERY,
   TOGGLE_MENTOR_STATUS_MUTATION,
   HIDE_REVIEW_MUTATION,
+  ALL_PROMOTION_REQUESTS_QUERY,
+  PENDING_HIDE_REQUESTS_QUERY,
+  RESOLVE_PROMOTION_REQUEST_MUTATION,
+  RESOLVE_REVIEW_HIDE_REQUEST_MUTATION,
 } from "@/lib/queries";
 import { useAuthStore } from "@/stores/authStore";
 import {
@@ -40,17 +44,29 @@ import {
   ArrowDown,
   PenLine,
   LogOut,
+  UserPlus,
+  Inbox,
+  XCircle,
+  CheckCircle,
 } from "lucide-react";
-import { Review, User } from "@/types";
+import { Review, User, PromotionRequest } from "@/types";
+import { AddAdminModal } from "@/components/admin/AddAdminModal";
 
-type Tab = "users" | "reviews";
+type Tab = "users" | "reviews" | "requests";
 type UserCategory = "all" | "mentees" | "mentors" | "admins";
 type ReviewCategory = "all" | "visible" | "hidden";
+type RequestCategory = "promotions" | "hides";
 
 const roleChipSx: Record<string, any> = {
   USER: { bgcolor: "rgba(113, 63, 18, 0.5)", color: "#facc15" },
   MENTOR: { bgcolor: "rgba(58, 88, 65, 0.2)", color: "primary.main" },
   ADMIN: { bgcolor: "rgba(30, 58, 138, 0.5)", color: "#60a5fa" },
+};
+
+const reqChipSx: Record<string, any> = {
+  PENDING: { bgcolor: "rgba(113, 63, 18, 0.5)", color: "#facc15" },
+  APPROVED: { bgcolor: "rgba(58, 88, 65, 0.2)", color: "primary.main" },
+  REJECTED: { bgcolor: "rgba(239, 68, 68, 0.15)", color: "#ef4444" },
 };
 
 const AdminDashboardPage = () => {
@@ -69,6 +85,9 @@ const AdminDashboardPage = () => {
     useState<UserCategory>("all");
   const [selectedReviewCategory, setSelectedReviewCategory] =
     useState<ReviewCategory>("all");
+  const [selectedRequestCategory, setSelectedRequestCategory] =
+    useState<RequestCategory>("promotions");
+  const [addAdminOpen, setAddAdminOpen] = useState(false);
 
   const { data: users, isLoading: usersLoading } = useQuery({
     queryKey: ["all-users"],
@@ -83,6 +102,26 @@ const AdminDashboardPage = () => {
     queryFn: async () => {
       const res = await gql<{ allReviews: Review[] }>(ALL_REVIEWS_QUERY);
       return res.allReviews;
+    },
+  });
+
+  const { data: promotionRequests, isLoading: promotionsLoading } = useQuery({
+    queryKey: ["all-promotion-requests"],
+    queryFn: async () => {
+      const res = await gql<{ allPromotionRequests: PromotionRequest[] }>(
+        ALL_PROMOTION_REQUESTS_QUERY,
+      );
+      return res.allPromotionRequests;
+    },
+  });
+
+  const { data: hideRequests, isLoading: hidesLoading } = useQuery({
+    queryKey: ["pending-hide-requests"],
+    queryFn: async () => {
+      const res = await gql<{ pendingHideRequests: Review[] }>(
+        PENDING_HIDE_REQUESTS_QUERY,
+      );
+      return res.pendingHideRequests;
     },
   });
 
@@ -132,6 +171,74 @@ const AdminDashboardPage = () => {
       }),
   });
 
+  const resolvePromotion = useMutation({
+    mutationFn: async ({
+      requestId,
+      approve,
+    }: {
+      requestId: string;
+      approve: boolean;
+    }) => {
+      const res = await gql<{
+        resolvePromotionRequest: { success: boolean; errors: string[] | null };
+      }>(RESOLVE_PROMOTION_REQUEST_MUTATION, { requestId, approve });
+      if (!res.resolvePromotionRequest.success) {
+        throw new Error(
+          res.resolvePromotionRequest.errors?.[0] || "Failed to resolve",
+        );
+      }
+    },
+    onSuccess: (_v, vars) => {
+      toast({
+        title: vars.approve
+          ? "Promotion approved"
+          : "Promotion request rejected",
+      });
+      queryClient.invalidateQueries({ queryKey: ["all-promotion-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["all-users"] });
+      queryClient.invalidateQueries({ queryKey: ["all-mentors"] });
+    },
+    onError: (err: any) =>
+      toast({
+        title: "Failed",
+        description: err.message,
+        variant: "destructive",
+      }),
+  });
+
+  const resolveHideRequest = useMutation({
+    mutationFn: async ({
+      reviewId,
+      approve,
+    }: {
+      reviewId: string;
+      approve: boolean;
+    }) => {
+      const res = await gql<{
+        resolveReviewHideRequest: { success: boolean; errors: string[] | null };
+      }>(RESOLVE_REVIEW_HIDE_REQUEST_MUTATION, { reviewId, approve });
+      if (!res.resolveReviewHideRequest.success) {
+        throw new Error(
+          res.resolveReviewHideRequest.errors?.[0] || "Failed to resolve",
+        );
+      }
+    },
+    onSuccess: (_v, vars) => {
+      toast({
+        title: vars.approve ? "Review hidden" : "Hide request rejected",
+      });
+      queryClient.invalidateQueries({ queryKey: ["pending-hide-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["all-reviews-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["all-reviews"] });
+    },
+    onError: (err: any) =>
+      toast({
+        title: "Failed",
+        description: err.message,
+        variant: "destructive",
+      }),
+  });
+
   const totalUsers = users?.length ?? 0;
   const totalMentees = users?.filter((u) => u.role === "USER").length ?? 0;
   const totalMentors = users?.filter((u) => u.role === "MENTOR").length ?? 0;
@@ -167,6 +274,10 @@ const AdminDashboardPage = () => {
 
   const filteredReviews = getFilteredReviews();
 
+  const pendingPromotions =
+    promotionRequests?.filter((r) => r.status === "PENDING") ?? [];
+  const pendingHides = hideRequests ?? [];
+
   const navBtnSx = (active: boolean) => ({
     justifyContent: "flex-start",
     width: "100%",
@@ -180,6 +291,8 @@ const AdminDashboardPage = () => {
     px: 1.5,
   });
 
+  const requestsBadge = pendingPromotions.length + pendingHides.length;
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box
@@ -190,7 +303,7 @@ const AdminDashboardPage = () => {
           alignItems: "start",
         }}
       >
-        <Box sx={{ position: { lg: "sticky" }, top: { lg: 160 } }}>
+        <Box sx={{ position: { lg: "sticky" }, top: { lg: 165 } }}>
           <Card>
             <CardContent>
               <Stack spacing={2}>
@@ -250,12 +363,33 @@ const AdminDashboardPage = () => {
                     </Button>
                     <Button
                       size="small"
+                      onClick={() => setTab("requests")}
+                      sx={navBtnSx(tab === "requests")}
+                      startIcon={<Inbox size={16} />}
+                    >
+                      Requests
+                      {requestsBadge > 0 && (
+                        <Chip
+                          label={requestsBadge}
+                          size="small"
+                          sx={{
+                            ml: "auto",
+                            height: 18,
+                            fontSize: "0.625rem",
+                            fontWeight: 700,
+                            ...reqChipSx.APPROVED,
+                          }}
+                        />
+                      )}
+                    </Button>
+                    <Button
+                      size="small"
                       component={RouterLink}
                       to="/mentors"
                       sx={navBtnSx(false)}
                       startIcon={<GraduationCap size={16} />}
                     >
-                      Mentors
+                      Browse Mentors
                     </Button>
                   </Stack>
                 </Box>
@@ -289,7 +423,10 @@ const AdminDashboardPage = () => {
               <Box
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(4, 1fr)", md: "repeat(4, 1fr)" },
+                  gridTemplateColumns: {
+                    xs: "repeat(2, 1fr)",
+                    sm: "repeat(4, 1fr)",
+                  },
                   gap: 2,
                 }}
               >
@@ -330,9 +467,26 @@ const AdminDashboardPage = () => {
               <Card>
                 <CardContent>
                   <Stack spacing={2}>
-                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                      All Users
-                    </Typography>
+                    <Stack
+                      direction={{ xs: "column", sm: "row" }}
+                      spacing={1}
+                      sx={{ alignItems: { xs: "stretch", sm: "center" }, justifyContent: "space-between" }}
+                    >
+                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                        All Users
+                      </Typography>
+                      {selectedUserCategory === "admins" || selectedUserCategory === "all" ? (
+                        <Button
+                          size="small"
+                          variant="contained"
+                          startIcon={<UserPlus size={14} />}
+                          onClick={() => setAddAdminOpen(true)}
+                          sx={{ textTransform: "none", px: 5, py: 0.7 }}
+                        >
+                          Add Admin
+                        </Button>
+                      ) : null}
+                    </Stack>
 
                     {usersLoading ? (
                       <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
@@ -345,7 +499,7 @@ const AdminDashboardPage = () => {
                     ) : (
                       <>
                         {/* Desktop / tablet: keep the table */}
-                        <Box sx={{ display: { xs: "none", sm: "block", md: "block" } }}>
+                        <Box sx={{ display: { xs: "none", sm: "block" } }}>
                           <TableContainer
                             sx={{ border: 1, borderColor: "divider", borderRadius: 1 }}
                           >
@@ -436,7 +590,7 @@ const AdminDashboardPage = () => {
                         </Box>
 
                         {/* Mobile: stacked cards */}
-                        <Stack spacing={1.5} sx={{ display: { xs: "flex", sm:"none", md: "none" } }}>
+                        <Stack spacing={1.5} sx={{ display: { xs: "flex", sm: "none" } }}>
                           {filteredUsers.map((u) => (
                             <Box
                               key={u.id}
@@ -541,7 +695,10 @@ const AdminDashboardPage = () => {
               <Box
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(3, 1fr)" },
+                  gridTemplateColumns: {
+                    xs: "repeat(2, 1fr)",
+                    sm: "repeat(3, 1fr)",
+                  },
                   gap: 2,
                 }}
               >
@@ -650,7 +807,7 @@ const AdminDashboardPage = () => {
                                 right: { sm: 16 },
                                 transform: { sm: "translateY(-50%)" },
                                 display: "flex",
-                                justifyContent: "center"
+                                justifyContent: "center",
                               }}
                             >
                               {r.isHidden ? (
@@ -687,8 +844,316 @@ const AdminDashboardPage = () => {
               </Card>
             </>
           )}
+
+          {tab === "requests" && (
+            <>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: {
+                    xs: "repeat(2, 1fr)",
+                  },
+                  gap: 2,
+                }}
+              >
+                <StatCard
+                  label="Mentor Promotions"
+                  value={pendingPromotions.length}
+                  loading={promotionsLoading}
+                  icon={<GraduationCap className="h-7 w-7 text-primary" />}
+                  isActive={selectedRequestCategory === "promotions"}
+                  onClick={() => setSelectedRequestCategory("promotions")}
+                />
+                <StatCard
+                  label="Hide Reviews"
+                  value={pendingHides.length}
+                  loading={hidesLoading}
+                  icon={<EyeOff className="h-7 w-7 text-destructive" />}
+                  isActive={selectedRequestCategory === "hides"}
+                  onClick={() => setSelectedRequestCategory("hides")}
+                />
+              </Box>
+
+              <Card>
+                <CardContent>
+                  <Stack spacing={2}>
+                    {selectedRequestCategory === "promotions" ? (
+                      <>
+                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                          Promotion Requests
+                        </Typography>
+                        {promotionsLoading ? (
+                          <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
+                            <CircularProgress size={24} />
+                          </Box>
+                        ) : !promotionRequests ||
+                          promotionRequests.length === 0 ? (
+                          <Box sx={{ textAlign: "center", py: 5, color: "text.secondary" }}>
+                            No promotion requests.
+                          </Box>
+                        ) : (
+                          <Stack spacing={1.5}>
+                            {promotionRequests.map((req) => (
+                              <Box
+                                key={req.id}
+                                sx={{
+                                  border: 1,
+                                  borderColor: "divider",
+                                  borderRadius: 1.5,
+                                  p: 2,
+                                }}
+                              >
+                                <Stack spacing={1}>
+                                  <Box 
+                                    sx={{
+                                      display: "flex",
+                                      justifyContent: "space-between"
+                                    }}
+                                  >
+                                    <Box sx={{ minWidth: 0 }}>
+                                      <Typography sx={{ fontWeight: 600 }}>
+                                        {req.user.firstName} {req.user.lastName}
+                                      </Typography>
+                                      <Typography
+                                        sx={{
+                                          fontSize: "0.75rem",
+                                          color: "text.secondary",
+                                          wordBreak: "break-all",
+                                        }}
+                                      >
+                                        {req.user.email}
+                                      </Typography>
+                                    </Box>
+                                    <Chip
+                                      label={req.status}
+                                      size="small"
+                                      sx={{
+                                        height: 20,
+                                        fontSize: "0.625rem",
+                                        fontWeight: 600,
+                                        flexShrink: 0,
+                                        ...(reqChipSx[req.status] ?? {}),
+                                      }}
+                                    />
+                                  </Box>
+                                  <Stack
+                                    direction="row"
+                                    spacing={10}
+                                  >
+                                    <Box>
+                                      <Typography
+                                        sx={{
+                                          fontSize: "0.7rem",
+                                          textTransform: "uppercase",
+                                          color: "text.secondary",
+                                          letterSpacing: 0.5,
+                                        }}
+                                      >
+                                        Occupation
+                                      </Typography>
+                                      <Typography sx={{ fontSize: "0.875rem" }}>
+                                        {req.occupation}
+                                      </Typography>
+                                    </Box>
+                                    <Box>
+                                      <Typography
+                                        sx={{
+                                          fontSize: "0.7rem",
+                                          textTransform: "uppercase",
+                                          color: "text.secondary",
+                                          letterSpacing: 0.5,
+                                        }}
+                                      >
+                                        Expertise
+                                      </Typography>
+                                      <Typography sx={{ fontSize: "0.875rem" }}>
+                                        {req.expertise}
+                                      </Typography>
+                                    </Box>
+                                  </Stack>
+                                  <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "space-between", alignItems: "center" }}>
+                                    <Typography
+                                      sx={{
+                                        fontSize: "0.75rem",
+                                        color: "text.secondary",
+                                      }}
+                                    >
+                                      Submitted at{" "}{new Date(req.createdAt).toLocaleString()}
+                                    </Typography>
+                                    {req.status === "PENDING" && (
+                                      <Stack
+                                        direction="row"
+                                        spacing={1}
+                                        sx={{
+                                          justifyContent: { xs: "center", sm: "flex-end" },
+                                        }}
+                                      >
+                                        <Button
+                                          size="small"
+                                          variant="outlined"
+                                          color="error"
+                                          startIcon={<XCircle size={12} />}
+                                          disabled={resolvePromotion.isPending}
+                                          onClick={() =>
+                                            resolvePromotion.mutate({
+                                              requestId: req.id,
+                                              approve: false,
+                                            })
+                                          }
+                                          sx={{
+                                            textTransform: "none",
+                                            py: 0.25,
+                                            minHeight: 0,
+                                          }}
+                                        >
+                                          Reject
+                                        </Button>
+                                        <Button
+                                          size="small"
+                                          variant="outlined"
+                                          startIcon={<CheckCircle size={12} />}
+                                          disabled={resolvePromotion.isPending}
+                                          onClick={() =>
+                                            resolvePromotion.mutate({
+                                              requestId: req.id,
+                                              approve: true,
+                                            })
+                                          }
+                                          sx={{
+                                            textTransform: "none",
+                                            py: 0.25,
+                                            minHeight: 0,
+                                          }}
+                                        >
+                                          Approve
+                                        </Button>
+                                      </Stack>
+                                    )}
+                                  </Box>
+                                </Stack>
+                              </Box>
+                            ))}
+                          </Stack>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                          Mentor Review Hide Requests
+                        </Typography>
+                        {hidesLoading ? (
+                          <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
+                            <CircularProgress size={24} />
+                          </Box>
+                        ) : pendingHides.length === 0 ? (
+                          <Box sx={{ textAlign: "center", py: 5, color: "text.secondary" }}>
+                            No pending hide requests.
+                          </Box>
+                        ) : (
+                          <Stack spacing={1.5}>
+                            {pendingHides.map((r) => (
+                              <Box
+                                key={r.id}
+                                sx={{
+                                  border: 1,
+                                  borderColor: "divider",
+                                  borderRadius: 1.5,
+                                  p: 2,
+                                }}
+                              >
+                                <Stack spacing={1}>
+                                  <Typography sx={{ fontWeight: 600, fontSize: "0.875rem" }}>
+                                    {r.mentor.firstName} {r.mentor.lastName}{" "}
+                                    requested to hide a review by{" "}
+                                    {r.mentee.firstName} {r.mentee.lastName}
+                                  </Typography>
+                                  <Stack
+                                    direction="row"
+                                    spacing={0.25}
+                                    sx={{ alignItems: "center" }}
+                                  >
+                                    {Array.from({ length: 5 }).map((_, i) => (
+                                      <Star
+                                        key={i}
+                                        size={12}
+                                        color={i < r.score ? "#d97706" : "#d1d5db"}
+                                        fill={i < r.score ? "#d97706" : "none"}
+                                      />
+                                    ))}
+                                  </Stack>
+                                  <Typography
+                                    sx={{
+                                      fontSize: "0.875rem",
+                                      color: "text.secondary",
+                                    }}
+                                  >
+                                    {r.remark}
+                                  </Typography>
+                                  <Stack
+                                    direction="row"
+                                    spacing={1}
+                                    sx={{
+                                      justifyContent: { xs: "center", sm: "flex-end" },
+                                      flexWrap: "wrap",
+                                      rowGap: 1,
+                                    }}
+                                  >
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      color="error"
+                                      startIcon={<XCircle size={12} />}
+                                      disabled={resolveHideRequest.isPending}
+                                      onClick={() =>
+                                        resolveHideRequest.mutate({
+                                          reviewId: r.id,
+                                          approve: false,
+                                        })
+                                      }
+                                      sx={{
+                                        textTransform: "none",
+                                        py: 0.25,
+                                        minHeight: 0,
+                                      }}
+                                    >
+                                      Reject
+                                    </Button>
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      startIcon={<CheckCircle size={12} />}
+                                      disabled={resolveHideRequest.isPending}
+                                      onClick={() =>
+                                        resolveHideRequest.mutate({
+                                          reviewId: r.id,
+                                          approve: true,
+                                        })
+                                      }
+                                      sx={{
+                                        textTransform: "none",
+                                        py: 0.25,
+                                        minHeight: 0,
+                                      }}
+                                    >
+                                      Hide
+                                    </Button>
+                                  </Stack>
+                                </Stack>
+                              </Box>
+                            ))}
+                          </Stack>
+                        )}
+                      </>
+                    )}
+                  </Stack>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </Stack>
       </Box>
+
+      <AddAdminModal open={addAdminOpen} onOpenChange={setAddAdminOpen} />
     </Container>
   );
 };

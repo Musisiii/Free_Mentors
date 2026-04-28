@@ -2,7 +2,11 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { gql } from "@/lib/graphql";
-import { MY_SESSIONS_QUERY, ALL_REVIEWS_QUERY } from "@/lib/queries";
+import {
+  MY_SESSIONS_QUERY,
+  ALL_REVIEWS_QUERY,
+  MY_PROMOTION_REQUEST_QUERY,
+} from "@/lib/queries";
 import { useAuthStore } from "@/stores/authStore";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -29,18 +33,21 @@ import {
   Binoculars,
   PenLine,
   LogOut,
+  Calendar,
+  Clock,
 } from "lucide-react";
-import { MentorshipSession, User as UserT, Review } from "@/types";
+import {
+  MentorshipSession,
+  User as UserT,
+  Review,
+  PromotionRequest,
+} from "@/types";
 import { MentorDetailModal } from "@/components/mentor/MentorDetailModal";
+import { PromotionRequestModal } from "@/components/user/PromotionRequestModal";
 
 type Tab = "sessions" | "reviews";
 type SessionCategory = "all" | "pending" | "accepted" | "rejected" | "completed";
 
-// Match the original badge variants:
-//   PENDING   -> user      (yellow-900/50 bg, yellow-400 text)
-//   ACCEPTED  -> default   (primary/20 bg, primary text)
-//   COMPLETED -> admin     (blue-900/50 bg, blue-400 text)
-//   REJECTED  -> destructive (red/15 bg, red text)
 const statusChipSx: Record<string, any> = {
   PENDING: { bgcolor: "rgba(113, 63, 18, 0.5)", color: "#facc15" },
   ACCEPTED: { bgcolor: "rgba(58, 88, 65, 0.2)", color: "primary.main" },
@@ -52,6 +59,11 @@ const roleChipSx: Record<string, any> = {
   ADMIN: { bgcolor: "rgba(30, 58, 138, 0.5)", color: "#60a5fa" },
   MENTOR: { bgcolor: "rgba(58, 88, 65, 0.2)", color: "primary.main" },
   USER: { bgcolor: "rgba(113, 63, 18, 0.5)", color: "#facc15" },
+};
+
+const promoChipSx: Record<string, any> = {
+  PENDING: { bgcolor: "rgba(58, 88, 65, 0.2)", color: "primary.main" },
+  REJECTED: { bgcolor: "rgba(239, 68, 68, 0.15)", color: "#ef4444" },
 };
 
 const UserDashboardPage = () => {
@@ -70,6 +82,7 @@ const UserDashboardPage = () => {
   const [selectedMentor, setSelectedMentor] = useState<UserT | null>(null);
   const [isComplete, setIsComplete] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [promotionModalOpen, setPromotionModalOpen] = useState(false);
 
   const { data: sessions, isLoading: sessionLoading } = useQuery({
     queryKey: ["my-sessions"],
@@ -87,7 +100,17 @@ const UserDashboardPage = () => {
     },
   });
 
-  const userReviews = (reviews ?? []).filter((r) => r.mentee?.id === user?.id);
+  const { data: promotionRequest } = useQuery({
+    queryKey: ["my-promotion-request"],
+    queryFn: async () => {
+      const res = await gql<{ myPromotionRequest: PromotionRequest | null }>(
+        MY_PROMOTION_REQUEST_QUERY,
+      );
+      return res.myPromotionRequest;
+    },
+  });
+
+  const userReviews = (reviews ?? []).filter((r) => r.mentee?.id === user?.id && r.isHidden === false);
 
   const counts = useMemo(() => {
     const all = sessions ?? [];
@@ -125,6 +148,8 @@ const UserDashboardPage = () => {
       bgcolor: active ? "secondary.main" : "rgba(0,0,0,0.04)",
     },
   });
+
+  const showPromotionCard = promotionRequest.status !== "PENDING";
 
   return (
     <Container maxWidth="lg" sx={{ p: 2, py: 4 }}>
@@ -165,27 +190,55 @@ const UserDashboardPage = () => {
                     >
                       {user?.email}
                     </Typography>
-                    <Chip
-                      label={user?.role}
-                      size="small"
-                      sx={{
-                        mt: 0.5,
-                        height: 20,
-                        fontSize: "0.625rem",
-                        fontWeight: 600,
-                        ...(roleChipSx[user?.role ?? "USER"] ?? {}),
-                      }}
-                    />
+                    <Stack
+                      direction="row"
+                      spacing={0.5}
+                      sx={{ mt: 0.5, flexWrap: "wrap", gap: 0.5 }}
+                    >
+                      <Chip
+                        label={user?.role}
+                        size="small"
+                        sx={{
+                          height: 20,
+                          fontSize: "0.625rem",
+                          fontWeight: 600,
+                          ...(roleChipSx[user?.role ?? "USER"] ?? {}),
+                        }}
+                      />
+                      {promotionRequest?.status === "PENDING" && (
+                        <Chip
+                          label="PROMOTION PENDING"
+                          size="small"
+                          sx={{
+                            height: 20,
+                            fontSize: "0.575rem",
+                            fontWeight: 600,
+                            ...promoChipSx.PENDING,
+                          }}
+                        />
+                      )}
+                      {promotionRequest?.status === "REJECTED" && (
+                        <Chip
+                          label="PROMOTION REJECTED"
+                          size="small"
+                          sx={{
+                            height: 20,
+                            fontSize: "0.575rem",
+                            fontWeight: 600,
+                            ...promoChipSx.REJECTED,
+                          }}
+                        />
+                      )}
+                    </Stack>
                   </Box>
                 </Stack>
 
                 <Stack spacing={1} sx={{ fontSize: "0.875rem" }}>
-                  <Field
-                    label="Occupation"
-                    icon={<Briefcase size={12} />}
-                  >
-                    {user?.occupation || "Not set"}
-                  </Field>
+                  {user?.occupation && (
+                    <Field label="Occupation" icon={<Briefcase size={12} />}>
+                      {user.occupation}
+                    </Field>
+                  )}
                   <Field label="Address" icon={<MapPin size={12} />}>
                     {user?.address}
                   </Field>
@@ -248,9 +301,83 @@ const UserDashboardPage = () => {
 
         {/* Main column */}
         <Stack spacing={3} sx={{ minHeight: "calc(100vh - 8rem)" }}>
-          <Typography component="h1" sx={{ fontSize: "1.875rem", fontWeight: 700 }}>
-            User Dashboard
-          </Typography>
+          <Box sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+          }}>
+            <Typography component="h1" sx={{ fontSize: "1.875rem", fontWeight: 700 }}>
+              User Dashboard
+            </Typography>
+            {showPromotionCard && (
+              <Button
+                size="large"
+                variant="contained"
+                color="primary"
+                onClick={() => setPromotionModalOpen(true)}
+                sx={{
+                  textTransform: "none",
+                  minHeight: 0,
+                  alignSelf: { xs: "stretch", sm: "auto" },
+                }}
+              >
+                Become a Mentor
+              </Button>
+            )}
+          </Box>
+
+          {promotionRequest?.status === "PENDING" && (
+            <Card sx={{ borderLeft: 7, borderColor: "primary.main" }}>
+              <CardContent sx={{ py: "12px !important" }}>
+                <Stack
+                  direction="row"
+                  spacing={1.5}
+                  sx={{ flexWrap: "wrap", alignItems: "center" }}
+                >
+                  <GraduationCap size={18} color={theme.palette.primary.main} />
+                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontSize: "0.875rem", fontWeight: 600 }}>
+                      Promotion Request Pending
+                    </Typography>
+                    <Typography
+                      sx={{ fontSize: "0.75rem", color: "text.secondary" }}
+                    >
+                      submitted at{" "}{new Date(promotionRequest.createdAt).toLocaleString()}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
+          )}
+          {promotionRequest?.status === "REJECTED" && (
+            <Card sx={{ borderLeft: 7, borderColor: "#ef4444" }}>
+              <CardContent sx={{ py: "12px !important" }}>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  spacing={1.5}
+                  sx={{ flexWrap: "wrap", alignItems: { xs: "flex-start", sm: "center" } }}
+                >
+                  <Stack
+                    direction="row"
+                    spacing={1.5}
+                    sx={{ flex: 1, minWidth: 0, alignItems: "center" }}
+                  >
+                    <GraduationCap size={18} color="#ef4444" />
+                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                      <Typography sx={{ fontSize: "0.875rem", fontWeight: 600 }}>
+                        Your last promotion request was rejected
+                      </Typography>
+                      <Typography
+                        sx={{ fontSize: "0.75rem", color: "text.secondary" }}
+                      >
+                        You can submit a new request anytime.
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Stack>
+              </CardContent>
+            </Card>
+          )}
 
           {tab === "sessions" && (
             <>
@@ -363,7 +490,7 @@ const UserDashboardPage = () => {
                           <Stack spacing={1}>
                             <Box
                               sx={{
-                                display: 'flex',
+                                display: "flex",
                                 alignItems: "center",
                                 gap: { xs: 1, sm: 1.5 },
                               }}
@@ -375,7 +502,7 @@ const UserDashboardPage = () => {
                                   flexShrink: 0,
                                   borderRadius: "50%",
                                   bgcolor: "rgba(0,0,0,0.05)",
-                                  display: { xs: 'none', sm: 'inline-flex' },
+                                  display: { xs: "none", sm: "inline-flex" },
                                   alignItems: "center",
                                   justifyContent: "center",
                                 }}
@@ -388,13 +515,14 @@ const UserDashboardPage = () => {
                               <Box
                                 sx={{
                                   flex: 1,
+                                  minWidth: 0,
                                   display: "flex",
                                   justifyContent: "space-between",
                                   alignItems: "flex-start",
-                                  // gap: { xs: 1, sm: 1.5 },
+                                  gap: 1,
                                 }}
                               >
-                                <Box>
+                                <Box sx={{ minWidth: 0 }}>
                                   <Typography sx={{ fontWeight: 600 }}>
                                     {s.mentor.firstName} {s.mentor.lastName}
                                   </Typography>
@@ -420,11 +548,44 @@ const UserDashboardPage = () => {
                                     height: 20,
                                     fontSize: "0.625rem",
                                     fontWeight: 600,
+                                    flexShrink: 0,
                                     ...(statusChipSx[s.status] ?? {}),
                                   }}
                                 />
                               </Box>
                             </Box>
+
+                            {s.scheduledAt && (
+                              <Stack
+                                direction="row"
+                                spacing={5}
+                                sx={{
+                                  fontSize: "0.75rem",
+                                  color: "text.secondary",
+                                  flexWrap: "wrap",
+                                }}
+                              >
+                                <Stack
+                                  direction="row"
+                                  spacing={0.5}
+                                  sx={{ alignItems: "center" }}
+                                >
+                                  <Calendar size={12} />
+                                  <span>
+                                    {new Date(s.scheduledAt).toLocaleString()}
+                                  </span>
+                                </Stack>
+                                <Stack
+                                  direction="row"
+                                  spacing={0.5}
+                                  sx={{ alignItems: "center" }}
+                                >
+                                  <Clock size={12} />
+                                  <span>{s.durationMinutes ?? 30} min</span>
+                                </Stack>
+                              </Stack>
+                            )}
+
                             <Typography
                               sx={{
                                 fontSize: "0.875rem",
@@ -437,12 +598,48 @@ const UserDashboardPage = () => {
                             >
                               {s.questions}
                             </Typography>
+
+                            {s.status === "REJECTED" && s.rejectReason && (
+                              <Box
+                                sx={{
+                                  mt: 0.5,
+                                  p: 1,
+                                  borderRadius: 1,
+                                  bgcolor: "rgba(239, 68, 68, 0.08)",
+                                  borderLeft: 2,
+                                  borderColor: "#ef4444",
+                                }}
+                              >
+                                <Typography
+                                  sx={{
+                                    fontSize: "0.7rem",
+                                    color: "#ef4444",
+                                    fontWeight: 600,
+                                    textTransform: "uppercase",
+                                    letterSpacing: 0.5,
+                                  }}
+                                >
+                                  Reason from mentor
+                                </Typography>
+                                <Typography
+                                  sx={{
+                                    fontSize: "0.8rem",
+                                    color: "text.secondary",
+                                    mt: 0.25,
+                                  }}
+                                >
+                                  {s.rejectReason}
+                                </Typography>
+                              </Box>
+                            )}
+
                             <Box
                               sx={{
                                 display: "flex",
                                 flexDirection: { xs: "column", sm: "row" },
                                 justifyContent: "space-between",
-                                alignItems: "center",
+                                alignItems: { xs: "flex-start", sm: "center" },
+                                gap: 1,
                                 pt: 1,
                                 fontSize: "0.75rem",
                                 color: "text.secondary",
@@ -461,7 +658,12 @@ const UserDashboardPage = () => {
                                   setIsComplete(s.status === "COMPLETED");
                                   setModalOpen(true);
                                 }}
-                                sx={{ textTransform: "none", py: 0.25, minHeight: 0, mt: { xs: 1, sm: 0 } }}
+                                sx={{
+                                  textTransform: "none",
+                                  py: 0.25,
+                                  minHeight: 0,
+                                  alignSelf: { xs: "stretch", sm: "auto" },
+                                }}
                               >
                                 View Mentor
                               </Button>
@@ -522,7 +724,7 @@ const UserDashboardPage = () => {
                           <Stack
                             direction="row"
                             spacing={1}
-                            sx={{ alignItems: "center" }}
+                            sx={{ alignItems: "center", flexWrap: "wrap" }}
                           >
                             <Typography
                               sx={{ fontSize: "0.875rem", fontWeight: 500 }}
@@ -569,6 +771,10 @@ const UserDashboardPage = () => {
         isComplete={isComplete}
         open={modalOpen}
         onOpenChange={setModalOpen}
+      />
+      <PromotionRequestModal
+        open={promotionModalOpen}
+        onOpenChange={setPromotionModalOpen}
       />
     </Container>
   );
