@@ -6,6 +6,7 @@ import {
   MY_SESSIONS_QUERY,
   UPDATE_SESSION_STATUS_MUTATION,
   ALL_REVIEWS_QUERY,
+  REQUEST_REVIEW_HIDE_MUTATION,
 } from "@/lib/queries";
 import { useAuthStore } from "@/stores/authStore";
 import {
@@ -37,8 +38,12 @@ import {
   PenLine,
   Crown,
   LogOut,
+  Calendar,
+  Clock,
+  EyeOff,
 } from "lucide-react";
 import { MentorshipSession, SessionStatus, Review } from "@/types";
+import { SessionRejectModal } from "@/components/sessions/SessionRejectModal";
 
 type Tab = "sessions" | "reviews";
 type SessionCategory = "all" | "pending" | "accepted" | "rejected" | "completed";
@@ -56,6 +61,12 @@ const roleChipSx: Record<string, any> = {
   USER: { bgcolor: "rgba(113, 63, 18, 0.5)", color: "#facc15" },
 };
 
+const hideRequestChipSx: Record<string, any> = {
+  PENDING: { bgcolor: "rgba(113, 63, 18, 0.5)", color: "#facc15" },
+  APPROVED: { bgcolor: "rgba(58, 88, 65, 0.2)", color: "primary.main" },
+  REJECTED: { bgcolor: "rgba(239, 68, 68, 0.15)", color: "#ef4444" },
+};
+
 const MentorDashboardPage = () => {
   const theme = useTheme();
   const { user, clearAuth } = useAuthStore();
@@ -70,6 +81,10 @@ const MentorDashboardPage = () => {
   const [tab, setTab] = useState<Tab>("sessions");
   const [selectedSessionCategory, setSelectedSessionCategory] =
     useState<SessionCategory>("all");
+  const [rejectSession, setRejectSession] = useState<MentorshipSession | null>(
+    null,
+  );
+  const [rejectOpen, setRejectOpen] = useState(false);
 
   const { data: sessions, isLoading: sessionLoading } = useQuery({
     queryKey: ["my-sessions"],
@@ -88,8 +103,10 @@ const MentorDashboardPage = () => {
   });
 
   const mentorReviews = (reviews ?? []).filter((r) => r.mentor?.id === user?.id);
-  const avgScore = mentorReviews.length
-    ? mentorReviews.reduce((s, r) => s + r.score, 0) / mentorReviews.length
+  const visibleMentorReviews = mentorReviews.filter((r) => !r.isHidden);
+  const avgScore = visibleMentorReviews.length
+    ? visibleMentorReviews.reduce((s, r) => s + r.score, 0) /
+      visibleMentorReviews.length
     : 0;
 
   const updateStatus = useMutation({
@@ -121,6 +138,32 @@ const MentorDashboardPage = () => {
         variant: "destructive",
       });
     },
+  });
+
+  const requestHide = useMutation({
+    mutationFn: async (reviewId: string) => {
+      const res = await gql<{
+        requestReviewHide: { success: boolean; errors: string[] | null };
+      }>(REQUEST_REVIEW_HIDE_MUTATION, { reviewId });
+      if (!res.requestReviewHide.success) {
+        throw new Error(
+          res.requestReviewHide.errors?.[0] || "Failed to request hide",
+        );
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Hide request submitted",
+        description: "An admin will review it shortly.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["all-reviews"] });
+    },
+    onError: (err: any) =>
+      toast({
+        title: "Could not submit",
+        description: err.message,
+        variant: "destructive",
+      }),
   });
 
   const counts = useMemo(() => {
@@ -173,7 +216,7 @@ const MentorDashboardPage = () => {
         {/* Profile sidebar */}
         <Box
           component="aside"
-          sx={{ position: { lg: "sticky" }, top: { lg: 160 } }}
+          sx={{ position: { lg: "sticky" }, top: { lg: 165 } }}
         >
           <Card>
             <CardContent>
@@ -244,14 +287,14 @@ const MentorDashboardPage = () => {
                       {user.address}
                     </Field>
                   )}
-                  {mentorReviews.length > 0 && (
+                  {visibleMentorReviews.length > 0 && (
                     <Field
                       label="Rating"
                       icon={<Star size={12} color="#f59e0b" />}
                     >
                       <span>
-                        {avgScore.toFixed(1)} ({mentorReviews.length} review
-                        {mentorReviews.length === 1 ? "" : "s"})
+                        {avgScore.toFixed(1)} ({visibleMentorReviews.length}{" "}
+                        review{visibleMentorReviews.length === 1 ? "" : "s"})
                       </span>
                     </Field>
                   )}
@@ -436,7 +479,7 @@ const MentorDashboardPage = () => {
                                   <Stack
                                     direction="row"
                                     spacing={{ xs: 0, sm: 1.5 }}
-                                    sx={{ alignItems: "center" }}
+                                    sx={{ alignItems: "center", minWidth: 0 }}
                                   >
                                     <Box
                                       sx={{
@@ -445,7 +488,7 @@ const MentorDashboardPage = () => {
                                         flexShrink: 0,
                                         borderRadius: "50%",
                                         bgcolor: "rgba(0,0,0,0.05)",
-                                        display: { xs: 'none', sm: 'inline-flex' },
+                                        display: { xs: "none", sm: "inline-flex" },
                                         alignItems: "center",
                                         justifyContent: "center",
                                       }}
@@ -455,7 +498,7 @@ const MentorDashboardPage = () => {
                                         color={theme.palette.primary.main}
                                       />
                                     </Box>
-                                    <Box>
+                                    <Box sx={{ minWidth: 0 }}>
                                       <Typography sx={{ fontWeight: 600 }}>
                                         {s.mentee.firstName} {s.mentee.lastName}
                                       </Typography>
@@ -465,11 +508,13 @@ const MentorDashboardPage = () => {
                                         sx={{
                                           fontSize: "0.75rem",
                                           color: "text.secondary",
-                                          alignItems: "center"
+                                          alignItems: "center",
                                         }}
                                       >
                                         <Mail size={12} />
-                                        <span>{s.mentee.email}</span>
+                                        <span style={{ wordBreak: "break-all" }}>
+                                          {s.mentee.email}
+                                        </span>
                                       </Stack>
                                     </Box>
                                   </Stack>
@@ -480,10 +525,43 @@ const MentorDashboardPage = () => {
                                       height: 20,
                                       fontSize: "0.625rem",
                                       fontWeight: 600,
+                                      flexShrink: 0,
                                       ...(statusChipSx[s.status] ?? {}),
                                     }}
                                   />
                                 </Box>
+
+                                {s.scheduledAt && (
+                                  <Stack
+                                    direction="row"
+                                    spacing={5}
+                                    sx={{
+                                      fontSize: "0.75rem",
+                                      color: "text.secondary",
+                                      flexWrap: "wrap",
+                                    }}
+                                  >
+                                    <Stack
+                                      direction="row"
+                                      spacing={0.5}
+                                      sx={{ alignItems: "center" }}
+                                    >
+                                      <Calendar size={12} />
+                                      <span>
+                                        {new Date(s.scheduledAt).toLocaleString()}
+                                      </span>
+                                    </Stack>
+                                    <Stack
+                                      direction="row"
+                                      spacing={0.5}
+                                      sx={{ alignItems: "center" }}
+                                    >
+                                      <Clock size={12} />
+                                      <span>{s.durationMinutes ?? 30} min</span>
+                                    </Stack>
+                                  </Stack>
+                                )}
+
                                 <Typography
                                   sx={{
                                     fontSize: "0.875rem",
@@ -497,7 +575,10 @@ const MentorDashboardPage = () => {
                                   sx={{
                                     display: "flex",
                                     alignItems: "center",
-                                    justifyContent: { xs: "center", sm: "space-between" },
+                                    justifyContent: {
+                                      xs: "center",
+                                      sm: "space-between",
+                                    },
                                     flexWrap: "wrap",
                                     gap: 1,
                                     pt: 0.5,
@@ -533,12 +614,10 @@ const MentorDashboardPage = () => {
                                           color="error"
                                           disabled={isPending}
                                           startIcon={<XCircle size={12} />}
-                                          onClick={() =>
-                                            updateStatus.mutate({
-                                              sessionId: s.id,
-                                              status: "REJECTED",
-                                            })
-                                          }
+                                          onClick={() => {
+                                            setRejectSession(s);
+                                            setRejectOpen(true);
+                                          }}
                                           sx={{ textTransform: "none", py: 0.25, minHeight: 0 }}
                                         >
                                           Decline
@@ -612,51 +691,122 @@ const MentorDashboardPage = () => {
                       No reviews yet.
                     </Typography>
                   ) : (
-                    <Stack spacing={2.5}>
+                    <Stack spacing={1.5}>
                       {mentorReviews.map((r) => (
                         <Box
                           key={r.id}
                           sx={{
-                            borderLeft: 2,
-                            borderColor: "rgba(58, 88, 65, 0.4)",
-                            pl: 1.5,
-                            "&:hover": { bgcolor: "rgba(0,0,0,0.03)" },
+                            border: 1,
+                            borderColor: "divider",
+                            borderRadius: 1.5,
+                            p: 2,
                           }}
                         >
-                          <Stack
-                            direction="row"
-                            spacing={1}
-                            sx={{ alignItems: "center" }}
-                          >
+                          <Stack spacing={1}>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "flex-start",
+                                flexWrap: "wrap",
+                                gap: 1,
+                              }}
+                            >
+                              <Stack
+                                direction="row"
+                                spacing={1}
+                                sx={{ alignItems: "center", flexWrap: "wrap" }}
+                              >
+                                <Typography
+                                  sx={{ fontSize: "0.875rem", fontWeight: 600 }}
+                                >
+                                  {r.mentee.firstName} {r.mentee.lastName}
+                                </Typography>
+                                <Stack
+                                  direction="row"
+                                  spacing={0.25}
+                                  sx={{ alignItems: "center" }}
+                                >
+                                  {Array.from({ length: 5 }).map((_, i) => (
+                                    <Star
+                                      key={i}
+                                      size={12}
+                                      color={i < r.score ? "#d97706" : "#d1d5db"}
+                                      fill={i < r.score ? "#d97706" : "none"}
+                                    />
+                                  ))}
+                                </Stack>
+                              </Stack>
+                              <Stack
+                                direction="row"
+                                spacing={0.5}
+                                sx={{ alignItems: "center", flexWrap: "wrap" }}
+                              >
+                                {r.isHidden && (
+                                  <Chip
+                                    label="HIDDEN"
+                                    size="small"
+                                    sx={{
+                                      height: 20,
+                                      fontSize: "0.625rem",
+                                      fontWeight: 600,
+                                      ...hideRequestChipSx.APPROVED,
+                                    }}
+                                  />
+                                )}
+                                {r.hideRequestStatus &&
+                                  r.hideRequestStatus !== "NONE" && (
+                                    <Chip
+                                      label={`HIDE ${r.hideRequestStatus}`}
+                                      size="small"
+                                      sx={{
+                                        height: 20,
+                                        fontSize: "0.575rem",
+                                        fontWeight: 600,
+                                        ...(hideRequestChipSx[
+                                          r.hideRequestStatus
+                                        ] ?? {}),
+                                      }}
+                                    />
+                                  )}
+                              </Stack>
+                            </Box>
                             <Typography
-                              sx={{ fontSize: "0.875rem", fontWeight: 500 }}
+                              sx={{
+                                fontSize: "0.875rem",
+                                color: "text.secondary",
+                              }}
                             >
-                              {r.mentee.firstName} {r.mentee.lastName}
+                              {r.remark}
                             </Typography>
-                            <Stack
-                              direction="row"
-                              spacing={0.25}
-                              sx={{ alignItems: "center" }}
-                            >
-                              {Array.from({ length: 5 }).map((_, i) => (
-                                <Star
-                                  key={i}
-                                  size={12}
-                                  color={i < r.score ? "#d97706" : "#d1d5db"}
-                                  fill={i < r.score ? "#d97706" : "none"}
-                                />
-                              ))}
-                            </Stack>
+                            {!r.isHidden &&
+                              (r.hideRequestStatus === "NONE" ||
+                                r.hideRequestStatus === "REJECTED") && (
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    justifyContent: { xs: "center", sm: "flex-end" },
+                                    pt: 0.5,
+                                  }}
+                                >
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="error"
+                                    disabled={requestHide.isPending}
+                                    startIcon={<EyeOff size={12} />}
+                                    onClick={() => requestHide.mutate(r.id)}
+                                    sx={{
+                                      textTransform: "none",
+                                      py: 0.25,
+                                      minHeight: 0,
+                                    }}
+                                  >
+                                    Request hide
+                                  </Button>
+                                </Box>
+                              )}
                           </Stack>
-                          <Typography
-                            sx={{
-                              fontSize: "0.875rem",
-                              color: "text.secondary",
-                              mt: 0.5,
-                            }}
-                          >
-                            {r.remark}
-                          </Typography>
                         </Box>
                       ))}
                     </Stack>
@@ -667,6 +817,12 @@ const MentorDashboardPage = () => {
           )}
         </Stack>
       </Box>
+
+      <SessionRejectModal
+        open={rejectOpen}
+        onOpenChange={setRejectOpen}
+        session={rejectSession}
+      />
     </Container>
   );
 };
