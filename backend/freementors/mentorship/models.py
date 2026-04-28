@@ -12,8 +12,6 @@ class SessionStatus(models.TextChoices):
 class HideRequestStatus(models.TextChoices):
     NONE = "NONE", "None"
     PENDING = "PENDING", "Pending"
-    APPROVED = "APPROVED", "Approved"
-    REJECTED = "REJECTED", "Rejected"
 
 
 class PromotionStatus(models.TextChoices):
