@@ -259,7 +259,7 @@ class RequestReviewHideMutation(graphene.Mutation):
                 success=False,
                 errors=["A hide request for this review is already pending."],
             )
-        if review.hide_request_status == HideRequestStatus.APPROVED or review.is_hidden:
+        if review.hide_request_status == HideRequestStatus.NONE or review.is_hidden:
             return RequestReviewHideMutation(
                 success=False,
                 errors=["This review is already hidden."],
@@ -300,10 +300,10 @@ class ResolveReviewHideRequestMutation(graphene.Mutation):
             )
 
         if approve:
-            review.hide_request_status = HideRequestStatus.APPROVED
+            review.hide_request_status = HideRequestStatus.NONE
             review.is_hidden = True
         else:
-            review.hide_request_status = HideRequestStatus.REJECTED
+            review.hide_request_status = HideRequestStatus.NONE
         review.save()
         return ResolveReviewHideRequestMutation(review=review, success=True, errors=[])
 
@@ -426,9 +426,10 @@ class Query(graphene.ObjectType):
         # mentor can manage hide requests and the mentee can see their own
         # history. Everyone else only sees visible reviews.
         if user.is_authenticated:
-            return Review.objects.filter(
-                Q(is_hidden=False) | Q(mentor_id=user.id) | Q(mentee_id=user.id)
-            )
+            # return Review.objects.filter(
+            #     Q(is_hidden=False)
+            # )
+            return Review.objects.all()
         return Review.objects.filter(is_hidden=False)
 
     def resolve_my_promotion_request(self, info):
