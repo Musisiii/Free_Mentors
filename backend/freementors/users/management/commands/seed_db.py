@@ -5,17 +5,24 @@ Usage:
     python manage.py seed_db
     python manage.py seed_db --clear   (clears existing data first)
 """
+from datetime import timedelta
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.utils import timezone
 from users.models import CustomUser, RoleChoices
-from mentorship.models import MentorshipSession, Review, SessionStatus
+from mentorship.models import (
+    MentorshipSession,
+    Review,
+    PromotionRequest,
+    SessionStatus,
+    HideRequestStatus,
+    PromotionStatus,
+)
 
 SEED_PASSWORD = "Password123!"
 
 
 def _safe_get_or_create_session(*, mentee, mentor, defaults):
-    """Like get_or_create, but tolerates duplicates (returns the first match
-    instead of raising MultipleObjectsReturned)."""
     qs = MentorshipSession.objects.filter(mentee=mentee, mentor=mentor)
     existing = qs.first()
     if existing is not None:
@@ -26,7 +33,6 @@ def _safe_get_or_create_session(*, mentee, mentor, defaults):
 
 
 def _safe_get_or_create_review(*, mentee, mentor, defaults):
-    """Safe variant for Review."""
     existing = Review.objects.filter(mentee=mentee, mentor=mentor).first()
     if existing is not None:
         return existing, False
@@ -50,13 +56,13 @@ class Command(BaseCommand):
             self.stdout.write("Clearing existing data...")
             Review.objects.all().delete()
             MentorshipSession.objects.all().delete()
+            PromotionRequest.objects.all().delete()
             CustomUser.objects.all().delete()
             self.stdout.write(self.style.WARNING("Existing data cleared."))
 
         with transaction.atomic():
             self.stdout.write("Creating users...")
 
-            # Admin
             admin, created = CustomUser.objects.get_or_create(
                 email="admin@freementors.com",
                 defaults={
@@ -76,7 +82,6 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(f"  Admin already exists: {admin.email}")
 
-            # Mentors
             mentors_data = [
                 {
                     "email": "mentor1.free@freementors.com",
@@ -121,7 +126,6 @@ class Command(BaseCommand):
                     self.stdout.write(f"  Mentor already exists: {mentor.email}")
                 mentors.append(mentor)
 
-            # Users/Mentees
             users_data = [
                 {
                     "email": "user1.free@freementors.com",
@@ -184,77 +188,92 @@ class Command(BaseCommand):
             tech_mentor = mentors[0]
             finance_mentor = mentors[1]
             health_mentor = mentors[2]
+            now = timezone.now()
 
-            # 2 PENDING sessions
-            session1, _ = _safe_get_or_create_session(
+            # 2 PENDING sessions (in the future, non-conflicting)
+            _safe_get_or_create_session(
                 mentee=mentees[0],
                 mentor=tech_mentor,
                 defaults={
                     "questions": "I want to transition into backend development. What technologies should I focus on first? How long does it typically take to become job-ready?",
                     "status": SessionStatus.PENDING,
+                    "scheduled_at": now + timedelta(days=2, hours=3),
+                    "duration_minutes": 30,
                 }
             )
 
-            session2, _ = _safe_get_or_create_session(
+            _safe_get_or_create_session(
                 mentee=mentees[1],
                 mentor=tech_mentor,
                 defaults={
                     "questions": "I have a background in marketing. How can I leverage my skills in a product management role in tech companies?",
                     "status": SessionStatus.PENDING,
+                    "scheduled_at": now + timedelta(days=3, hours=5),
+                    "duration_minutes": 45,
                 }
             )
 
             # 2 ACCEPTED sessions
-            session3, _ = _safe_get_or_create_session(
+            _safe_get_or_create_session(
                 mentee=mentees[2],
                 mentor=finance_mentor,
                 defaults={
                     "questions": "I have $10k to invest. How should I approach building a diversified investment portfolio as a beginner?",
                     "status": SessionStatus.ACCEPTED,
+                    "scheduled_at": now + timedelta(days=1, hours=2),
+                    "duration_minutes": 60,
                 }
             )
 
-            session4, _ = _safe_get_or_create_session(
+            _safe_get_or_create_session(
                 mentee=mentees[3],
                 mentor=health_mentor,
                 defaults={
                     "questions": "I want to improve my diet and energy levels. Can you help me create a personalized nutrition plan?",
                     "status": SessionStatus.ACCEPTED,
+                    "scheduled_at": now + timedelta(days=4, hours=1),
+                    "duration_minutes": 30,
                 }
             )
 
-            # 1 REJECTED session
-            session5, _ = _safe_get_or_create_session(
+            # 1 REJECTED session with a reason
+            _safe_get_or_create_session(
                 mentee=mentees[4],
                 mentor=finance_mentor,
                 defaults={
                     "questions": "I need help with tax planning for my freelance income and understanding quarterly payments.",
                     "status": SessionStatus.REJECTED,
+                    "scheduled_at": now + timedelta(days=5),
+                    "duration_minutes": 30,
+                    "reject_reason": "I'm not the best fit for tax-specific questions; consider an accountant.",
                 }
             )
 
-            # 1 COMPLETED session for review seeding
-            session6, _ = _safe_get_or_create_session(
+            # 2 COMPLETED sessions for review seeding
+            _safe_get_or_create_session(
                 mentee=mentees[0],
                 mentor=finance_mentor,
                 defaults={
                     "questions": "How do I start building savings as a junior developer with student debt?",
                     "status": SessionStatus.COMPLETED,
+                    "scheduled_at": now - timedelta(days=10),
+                    "duration_minutes": 30,
                 }
             )
 
-            session7, _ = _safe_get_or_create_session(
+            _safe_get_or_create_session(
                 mentee=mentees[3],
                 mentor=tech_mentor,
                 defaults={
                     "questions": "What programming language should I learn first as an absolute beginner?",
                     "status": SessionStatus.COMPLETED,
+                    "scheduled_at": now - timedelta(days=14),
+                    "duration_minutes": 45,
                 }
             )
 
             self.stdout.write("Creating reviews...")
 
-            # Review 1 - visible
             _safe_get_or_create_review(
                 mentee=mentees[0],
                 mentor=finance_mentor,
@@ -262,10 +281,10 @@ class Command(BaseCommand):
                     "remark": "Bob was incredibly helpful and gave me practical advice on budgeting with student loans. Highly recommend!",
                     "score": 5,
                     "is_hidden": False,
+                    "hide_request_status": HideRequestStatus.NONE,
                 }
             )
 
-            # Review 2 - visible
             _safe_get_or_create_review(
                 mentee=mentees[3],
                 mentor=tech_mentor,
@@ -273,17 +292,18 @@ class Command(BaseCommand):
                     "remark": "Alice explained programming concepts very clearly and helped me pick Python as my first language. Great session!",
                     "score": 4,
                     "is_hidden": False,
+                    "hide_request_status": HideRequestStatus.NONE,
                 }
             )
 
-            # Review 3 - hidden
             _safe_get_or_create_review(
-                mentee=mentees[3],
+                mentee=mentees[1],
                 mentor=tech_mentor,
                 defaults={
                     "remark": "This review has been hidden by an admin for violating community guidelines.",
                     "score": 1,
                     "is_hidden": True,
+                    "hide_request_status": HideRequestStatus.APPROVED,
                 }
             )
 
