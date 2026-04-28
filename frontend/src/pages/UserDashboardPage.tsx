@@ -33,7 +33,6 @@ import {
   Binoculars,
   PenLine,
   LogOut,
-  Crown,
   Calendar,
   Clock,
 } from "lucide-react";
@@ -364,7 +363,7 @@ const UserDashboardPage = () => {
                     spacing={1.5}
                     sx={{ flex: 1, minWidth: 0, alignItems: "center" }}
                   >
-                    <Crown size={18} color="#ef4444" />
+                    <GraduationCap size={18} color="#ef4444" />
                     <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                       <Typography sx={{ fontSize: "0.875rem", fontWeight: 600 }}>
                         Your last promotion request was rejected
@@ -376,14 +375,6 @@ const UserDashboardPage = () => {
                       </Typography>
                     </Box>
                   </Stack>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => setPromotionModalOpen(true)}
-                    sx={{ alignSelf: { xs: "stretch", sm: "auto" } }}
-                  >
-                    Try again
-                  </Button>
                 </Stack>
               </CardContent>
             </Card>

@@ -105,6 +105,7 @@ export function AddAdminModal({ open, onOpenChange }: Props) {
                 <TextField
                   id="firstName"
                   value={form.firstName}
+                  placeholder="John"
                   onChange={update("firstName")}
                   required
                   size="small"
@@ -118,6 +119,7 @@ export function AddAdminModal({ open, onOpenChange }: Props) {
                 <TextField
                   id="lastName"
                   value={form.lastName}
+                  placeholder="Doe"
                   onChange={update("lastName")}
                   required
                   size="small"
@@ -134,6 +136,7 @@ export function AddAdminModal({ open, onOpenChange }: Props) {
                 type="email"
                 value={form.email}
                 onChange={update("email")}
+                placeholder="john.doe@example.com"
                 required
                 size="small"
                 fullWidth
@@ -147,6 +150,7 @@ export function AddAdminModal({ open, onOpenChange }: Props) {
                 id="address"
                 value={form.address}
                 onChange={update("address")}
+                placeholder="Kigali - Rwanda"
                 size="small"
                 fullWidth
               />
