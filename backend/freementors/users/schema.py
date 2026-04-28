@@ -11,6 +11,7 @@ class RegisterMutation(graphene.Mutation):
         password = graphene.String(required=True)
         first_name = graphene.String(required=True)
         last_name = graphene.String(required=True)
+        occupation = graphene.String(required=True)
         address = graphene.String()
         bio = graphene.String()
 
@@ -18,8 +19,13 @@ class RegisterMutation(graphene.Mutation):
     success = graphene.Boolean()
     errors = graphene.List(graphene.String)
 
-    def mutate(self, info, email, password, first_name, last_name,
+    def mutate(self, info, email, password, first_name, last_name, occupation,
                address="", bio=""):
+        if not occupation.strip():
+            return RegisterMutation(
+                success=False,
+                errors=["Occupation is required."],
+            )
         if CustomUser.objects.filter(email=email).exists():
             return RegisterMutation(
                 success=False,
@@ -30,6 +36,7 @@ class RegisterMutation(graphene.Mutation):
             password=password,
             first_name=first_name,
             last_name=last_name,
+            occupation=occupation.strip(),
             address=address,
             bio=bio,
             role=RoleChoices.USER,

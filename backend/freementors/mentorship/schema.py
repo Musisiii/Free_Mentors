@@ -312,13 +312,14 @@ class CreatePromotionRequestMutation(graphene.Mutation):
     """User asks to be promoted to mentor."""
 
     class Arguments:
+        occupation = graphene.String(required=True)
         expertise = graphene.String(required=True)
 
     request = graphene.Field(PromotionRequestType)
     success = graphene.Boolean()
     errors = graphene.List(graphene.String)
 
-    def mutate(self, info, expertise):
+    def mutate(self, info, occupation, expertise):
         user = info.context.user
         if not user.is_authenticated:
             return CreatePromotionRequestMutation(success=False, errors=["Authentication required."])
@@ -329,6 +330,8 @@ class CreatePromotionRequestMutation(graphene.Mutation):
             )
         if not expertise.strip():
             return CreatePromotionRequestMutation(success=False, errors=["Expertise is required."])
+        if not occupation.strip():
+            return CreatePromotionRequestMutation(success=False, errors=["Occupation is required."])
 
         existing = PromotionRequest.objects.filter(
             user=user, status=PromotionStatus.PENDING
@@ -341,6 +344,7 @@ class CreatePromotionRequestMutation(graphene.Mutation):
 
         req = PromotionRequest.objects.create(
             user=user,
+            occupation=occupation.strip(),
             expertise=expertise.strip(),
             status=PromotionStatus.PENDING,
         )
@@ -380,6 +384,7 @@ class ResolvePromotionRequestMutation(graphene.Mutation):
             req.status = PromotionStatus.APPROVED
             target = req.user
             target.role = RoleChoices.MENTOR
+            target.occupation = req.occupation
             target.expertise = req.expertise
             target.save()
         else:

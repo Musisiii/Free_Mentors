@@ -87,7 +87,7 @@ class PromotionRequest(models.Model):
         on_delete=models.CASCADE,
         related_name="promotion_requests",
     )
-    occupation = models.CharField(max_length=100)
+    occupation = models.CharField(max_length=150)
     expertise = models.CharField(max_length=150)
     status = models.CharField(
         max_length=10,
