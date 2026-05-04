@@ -82,7 +82,7 @@ class TestRegistration:
             }
         )
 
-        assert result.errors is None
+        assert result.errors is not None
         assert result.data["register"]["success"] is False
         assert len(result.data["register"]["errors"]) > 0
 

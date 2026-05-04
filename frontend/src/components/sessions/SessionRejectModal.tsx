@@ -62,13 +62,6 @@ export function SessionRejectModal({ open, onOpenChange, session }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reason.trim()) {
-      toast({
-        title: "Please provide a reason",
-        variant: "destructive",
-      });
-      return;
-    }
     mutation.mutate();
   };
 

@@ -418,17 +418,7 @@ class Query(graphene.ObjectType):
 
     def resolve_all_reviews(self, info):
         user = info.context.user
-        # Admin sees everything (for moderation).
-        if user.is_authenticated and user.role == RoleChoices.ADMIN:
-            return Review.objects.all()
-        # Authenticated mentors and mentees still see hidden reviews tied to
-        # them (their own written reviews and reviews about them) so the
-        # mentor can manage hide requests and the mentee can see their own
-        # history. Everyone else only sees visible reviews.
         if user.is_authenticated:
-            # return Review.objects.filter(
-            #     Q(is_hidden=False)
-            # )
             return Review.objects.all()
         return Review.objects.filter(is_hidden=False)
 
