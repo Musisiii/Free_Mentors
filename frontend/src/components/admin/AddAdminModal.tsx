@@ -93,8 +93,7 @@ export function AddAdminModal({ open, onOpenChange }: Props) {
             The new admin's password will be set to{" "}
             <Box component="span" sx={{ fontFamily: "monospace" }}>
               Password123!
-            </Box>{" "}
-            — they can change it after their first login.
+            </Box>
           </DialogContentText>
           <Stack spacing={2}>
             <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
