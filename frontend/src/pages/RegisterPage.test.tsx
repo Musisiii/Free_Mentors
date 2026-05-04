@@ -46,6 +46,7 @@ describe("RegisterPage", () => {
     await fillField("lastName", "User");
     await fillField("email", "new@x.com");
     await fillField("password", "Password123!");
+    await fillField("confirmPassword", "Password123!");
     await fillField("address", "1 Main St");
     await fillField("occupation", "Engineer");
   };

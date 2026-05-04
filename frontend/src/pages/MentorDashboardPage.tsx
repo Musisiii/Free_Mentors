@@ -357,12 +357,7 @@ const MentorDashboardPage = () => {
 
         {/* Main column */}
         <Stack spacing={3}>
-          <Typography
-            component="h1"
-            sx={{ fontSize: "1.875rem", fontWeight: 700 }}
-          >
-            Mentor Dashboard
-          </Typography>
+          <Typography component="h1" sx={{ fontSize: "1.875rem", fontWeight: 700, mx: { xs: "auto", sm: 0 } }}>Mentor Dashboard</Typography>
 
           {tab === "sessions" && (
             <>

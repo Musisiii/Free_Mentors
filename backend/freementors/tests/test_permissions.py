@@ -5,7 +5,6 @@ import pytest
 from unittest.mock import MagicMock
 from freementors_project.schema import schema
 from users.models import CustomUser, RoleChoices
-import graphql_jwt
 
 
 ALL_USERS_QUERY = """
@@ -32,8 +31,8 @@ mutation ToggleMentorStatus($userId: ID!) {
 """
 
 ADD_ADMIN_MUTATION = """
-mutation AddAdmin($email: String!) {
-    addAdmin(email: $email) {
+mutation AddAdmin($firstName: String!, $lastName: String!, $email: String!) {
+    addAdmin(firstName: $firstName, lastName: $lastName, email: $email) {
         success
         errors
         user {
@@ -75,7 +74,7 @@ class TestAllUsersPermissions:
         """A standard USER cannot call allUsers."""
         context = make_context(self.regular_user)
         result = schema.execute(ALL_USERS_QUERY, context_value=context)
-        
+
         assert result.errors is not None
         assert len(result.errors) > 0
         error_message = str(result.errors[0])
@@ -86,9 +85,9 @@ class TestAllUsersPermissions:
         anon_user = MagicMock()
         anon_user.is_authenticated = False
         context = make_context(anon_user)
-        
+
         result = schema.execute(ALL_USERS_QUERY, context_value=context)
-        
+
         assert result.errors is not None
         assert len(result.errors) > 0
 
@@ -96,7 +95,7 @@ class TestAllUsersPermissions:
         """An ADMIN can call allUsers."""
         context = make_context(self.admin_user)
         result = schema.execute(ALL_USERS_QUERY, context_value=context)
-        
+
         assert result.errors is None
         assert result.data["allUsers"] is not None
         assert len(result.data["allUsers"]) >= 2
@@ -129,40 +128,47 @@ class TestRoleChangePermissions:
             variables={"userId": str(self.regular_user.id)},
             context_value=context,
         )
-        
+
         assert result.errors is None
         assert result.data["toggleMentorStatus"]["success"] is False
         assert "Admin" in result.data["toggleMentorStatus"]["errors"][0] or \
                "admin" in result.data["toggleMentorStatus"]["errors"][0]
 
     def test_user_cannot_add_admin(self):
-        """A regular USER cannot grant admin role to others."""
+        """A regular USER cannot create an admin account."""
         context = make_context(self.regular_user)
         result = schema.execute(
             ADD_ADMIN_MUTATION,
-            variables={"email": self.regular_user.email},
+            variables={
+                "firstName": "Rogue",
+                "lastName": "Admin",
+                "email": "rogue@test.com",
+            },
             context_value=context,
         )
-        
+
         assert result.errors is None
         assert result.data["addAdmin"]["success"] is False
-        
-        self.regular_user.refresh_from_db()
-        assert self.regular_user.role != RoleChoices.ADMIN
 
-    def test_user_cannot_change_own_role_to_admin(self):
-        """A USER cannot change their own role to ADMIN via addAdmin."""
-        context = make_context(self.regular_user)
+    def test_admin_can_add_admin(self):
+        """An ADMIN can create a new admin account."""
+        context = make_context(self.admin_user)
         result = schema.execute(
             ADD_ADMIN_MUTATION,
-            variables={"email": self.regular_user.email},
+            variables={
+                "firstName": "New",
+                "lastName": "Admin",
+                "email": "newadmin@test.com",
+            },
             context_value=context,
         )
-        
-        assert result.data["addAdmin"]["success"] is False
-        
-        self.regular_user.refresh_from_db()
-        assert self.regular_user.role == RoleChoices.USER
+
+        assert result.errors is None
+        assert result.data["addAdmin"]["success"] is True
+        assert result.data["addAdmin"]["user"]["role"] == "ADMIN"
+
+        new_admin = CustomUser.objects.get(email="newadmin@test.com")
+        assert new_admin.role == RoleChoices.ADMIN
 
     def test_admin_can_toggle_mentor_status(self):
         """An ADMIN can toggle user to mentor role."""
@@ -172,7 +178,61 @@ class TestRoleChangePermissions:
             variables={"userId": str(self.regular_user.id)},
             context_value=context,
         )
-        
+
         assert result.errors is None
         assert result.data["toggleMentorStatus"]["success"] is True
         assert result.data["toggleMentorStatus"]["user"]["role"] == "MENTOR"
+
+    def test_cannot_toggle_admin_role(self):
+        """An ADMIN cannot toggle another admin's role."""
+        context = make_context(self.admin_user)
+        result = schema.execute(
+            TOGGLE_MENTOR_STATUS_MUTATION,
+            variables={"userId": str(self.admin_user.id)},
+            context_value=context,
+        )
+        assert result.errors is None
+        assert result.data["toggleMentorStatus"]["success"] is False
+        assert "admin" in result.data["toggleMentorStatus"]["errors"][0].lower()
+
+    def test_toggle_nonexistent_user_fails(self):
+        """Toggling a nonexistent user returns an error."""
+        context = make_context(self.admin_user)
+        result = schema.execute(
+            TOGGLE_MENTOR_STATUS_MUTATION,
+            variables={"userId": "99999"},
+            context_value=context,
+        )
+        assert result.errors is None
+        assert result.data["toggleMentorStatus"]["success"] is False
+        assert "not found" in result.data["toggleMentorStatus"]["errors"][0].lower()
+
+    def test_unauthenticated_cannot_toggle(self):
+        """An unauthenticated user cannot toggle mentor status."""
+        anon = MagicMock()
+        anon.is_authenticated = False
+        context = make_context(anon)
+        result = schema.execute(
+            TOGGLE_MENTOR_STATUS_MUTATION,
+            variables={"userId": str(self.regular_user.id)},
+            context_value=context,
+        )
+        assert result.errors is None
+        assert result.data["toggleMentorStatus"]["success"] is False
+
+    def test_unauthenticated_cannot_add_admin(self):
+        """An unauthenticated user cannot add an admin."""
+        anon = MagicMock()
+        anon.is_authenticated = False
+        context = make_context(anon)
+        result = schema.execute(
+            ADD_ADMIN_MUTATION,
+            variables={
+                "firstName": "Rogue",
+                "lastName": "Admin",
+                "email": "rogue@test.com",
+            },
+            context_value=context,
+        )
+        assert result.errors is None
+        assert result.data["addAdmin"]["success"] is False

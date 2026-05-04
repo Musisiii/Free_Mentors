@@ -259,7 +259,7 @@ class RequestReviewHideMutation(graphene.Mutation):
                 success=False,
                 errors=["A hide request for this review is already pending."],
             )
-        if review.hide_request_status == HideRequestStatus.NONE or review.is_hidden:
+        if review.is_hidden:
             return RequestReviewHideMutation(
                 success=False,
                 errors=["This review is already hidden."],
